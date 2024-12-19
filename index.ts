@@ -1,11 +1,10 @@
 import * as dotenv from "dotenv";
-import {TelegramClient} from "telegram";
+import {Api, TelegramClient} from "telegram";
 import {StringSession} from "telegram/sessions";
 import * as fs from "node:fs";
 import ytdl from "@distube/ytdl-core";
-import ffmpeg from 'fluent-ffmpeg';
-import {switchToChat} from "telegraf/typings/button";
 import {NewMessageEvent} from "telegram/events";
+import Message = Api.Message;
 
 dotenv.config();
 
@@ -14,10 +13,6 @@ const BOT_API_ID: number = parseInt(process.env.BOT_API_ID ?? '');
 const BOT_API_HASH: string = process.env.BOT_API_HASH ?? ''
 
 const stringSessions: string = '';
-
-// Example usage
-const videoUrl = 'https://www.youtube.com/watch?v=Qyx8v1xAs00';
-const outputFilePath = 'video.mp4';
 
 (async () => {
     const client = new TelegramClient(
@@ -34,26 +29,33 @@ const outputFilePath = 'video.mp4';
     console.log(client.session.save());
 
     client.addEventHandler(async (update: NewMessageEvent) => {
-        const chat_id = update.message?.chatId;
+        const requestChatId = update.message?.chatId;
 
-        if (chat_id === undefined) {
+        if (requestChatId === undefined) {
             return;
         }
 
-        console.log(update);
+        const requestMessageId = update.message.id;
+        const requestMessageContent: string = update.message.message;
 
-        const messageId = update.message.id;
-        const messageContent: string = update.message.message;
-        if (messageContent.match(/^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube(?:-nocookie)?\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|live\/|v\/)?)([\w\-]+)(\S+)?$/g)) {
-            const outputFilePath = `build/storage/video_${messageId}.mp4`;
-            await downloadVideo(messageContent, outputFilePath);
+        if (requestMessageContent.match(/^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube(?:-nocookie)?\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|live\/|v\/)?)([\w\-]+)(\S+)?$/g)) {
+            const outputFilePath = `build/storage/video_${requestMessageId}.mp4`;
 
-            console.log('sending video...')
+            const progressMessage: Message = await client.sendMessage(requestChatId, { message: "download..." })
 
-            client.sendMessage(1, {buttons: })
-            await client.sendFile(chat_id, {file: fs.createReadStream(outputFilePath).path})
+            await downloadVideo(requestMessageContent, outputFilePath);
 
-            fs.unlink(outputFilePath, (err) => console.log(err));
+            try {
+                // await progressMessage.edit({text: "sending video..."})
+
+                await client.sendMessage(requestChatId, { replyTo: requestMessageId, file: fs.createReadStream(outputFilePath).path, message: "done!" })
+
+                await progressMessage.delete();
+            } catch(err: any) {
+                console.error(err);
+            } finally {
+                fs.unlink(outputFilePath, (err) => console.log(err));
+            }
         }
     })
 })();
