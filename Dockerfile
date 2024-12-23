@@ -24,7 +24,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY .env ./
 
-RUN npm ci --production
+RUN npm ci --omit=dev
 
 COPY --from=builder /app/build ./build
 
