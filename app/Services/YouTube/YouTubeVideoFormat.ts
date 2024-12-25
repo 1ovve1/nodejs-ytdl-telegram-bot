@@ -1,5 +1,5 @@
 import {videoFormat} from "@distube/ytdl-core";
-import VideoFormat from "../../../models/video_formats";
+import {VideoFormatCreationAttributes} from "../../../models/video_formats";
 import Video from "../../../models/videos";
 
 type CallableCheck = () => Promise<boolean>;
@@ -27,7 +27,7 @@ export interface YouTubeVideoFormatInterface {
 
     getQualityLabel(): string;
 
-    toVideoFormatModel(video: Video): VideoFormat;
+    toVideoFormatModel(video: Video): VideoFormatCreationAttributes;
 }
 
 export class YouTubeVideoFormat implements YouTubeVideoFormatInterface {
@@ -50,11 +50,11 @@ export class YouTubeVideoFormat implements YouTubeVideoFormatInterface {
     }
 
     isVideoCodec(codec: string): boolean {
-        return this.hasVideo() && Boolean(this.videoFormat.videoCodec?.startsWith(codec))
+        return this.hasVideo() && Boolean(this.videoFormat.videoCodec?.startsWith(codec) ?? false)
     }
 
     isAudioCodec(codec: string): boolean {
-        return this.hasAudio() && Boolean(this.videoFormat.audioCodec?.startsWith(codec));
+        return this.hasAudio() && Boolean(this.videoFormat.audioCodec?.startsWith(codec) ?? false);
     }
 
     async isUrlOk(): Promise<boolean> {
@@ -81,12 +81,12 @@ export class YouTubeVideoFormat implements YouTubeVideoFormatInterface {
         return this.videoFormat.url ?? '';
     }
 
-    toVideoFormatModel(video: Video): VideoFormat {
-        return new VideoFormat({
+    toVideoFormatModel(video: Video): VideoFormatCreationAttributes {
+        return {
             video_id: video.id,
             format: JSON.stringify(this.videoFormat),
-            label: `${this.videoFormat.qualityLabel} ${this.videoFormat.fps ?? 25}fps`,
-        });
+            label: `${this.getQualityLabel()} ${this.videoFormat.fps ?? 25}fps`,
+        };
     }
 }
 

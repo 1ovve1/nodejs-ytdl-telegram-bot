@@ -9,9 +9,9 @@ interface VideoFormatAttributes {
     label: string;
 }
 
-interface FormatCreationAttributes extends Optional<VideoFormatAttributes, 'id'> {}
+export interface VideoFormatCreationAttributes extends Optional<VideoFormatAttributes, 'id'> {}
 
-class VideoFormat extends Model<VideoFormatAttributes, FormatCreationAttributes> implements VideoFormatAttributes {
+class VideoFormat extends Model<VideoFormatAttributes, VideoFormatCreationAttributes> implements VideoFormatAttributes {
     declare id: number;
     declare video_id: number;
     declare format: string;
