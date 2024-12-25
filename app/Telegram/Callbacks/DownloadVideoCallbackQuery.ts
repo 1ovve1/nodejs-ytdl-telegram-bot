@@ -2,8 +2,7 @@ import {CallbackHandlerInterface} from "./CallbackHandler";
 import {CallbackQueryEvent} from "telegram/events/CallbackQuery";
 import {Client} from "../Client";
 import {VideoFormatRepository, VideoFormatRepositoryInterface} from "../../Repositories/VideoFormatRepository";
-import videos from "../../../models/videos";
-import {YouTubeService, YouTubeServiceInterface} from "../../Services/YouTube/YouTubeService";
+import {StoredYouTubeVideoInterface, YouTubeService, YouTubeServiceInterface } from "../../Services/YouTube/YouTubeService";
 import * as fs from "node:fs";
 
 export class DownloadVideoCallbackQuery implements CallbackHandlerInterface{
@@ -17,14 +16,17 @@ export class DownloadVideoCallbackQuery implements CallbackHandlerInterface{
             const videoFormat = await this.videoFormatRepository.findById(videFormatId);
             const video = await this.videoFormatRepository.video(videoFormat);
 
-            const path: string = await this.youTubeService.download(video, videoFormat);
-
-            event.answer({message: "Загрузка завершена! Начата выгрузка..."})
+            const storedYouTubeVideo: StoredYouTubeVideoInterface = await this.youTubeService.download(video, videoFormat);
 
             if (event.chatId) {
                 await client.sendMessage(event.chatId, {
-                    file: fs.createReadStream(path).path,
+                    message: storedYouTubeVideo.info.getDescription(),
+                    file: fs.createReadStream(storedYouTubeVideo.destination).path,
                 })
+
+                fs.unlinkSync(storedYouTubeVideo.destination);
+
+                await client.deleteMessages(event.chatId, [event.messageId], { revoke: true });
             }
         }
     }

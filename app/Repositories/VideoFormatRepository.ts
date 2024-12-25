@@ -1,10 +1,15 @@
-import VideoFormat from "../../models/formats";
+import VideoFormat from "../../models/video_formats";
 import Video from "../../models/videos";
 import {videoFormat} from "@distube/ytdl-core";
 import Videos from "../../models/videos";
+import {
+    YouTubeVideoFormat,
+    YouTubeVideoFormatChecker,
+    YouTubeVideoFormatInterface
+} from "../Services/YouTube/YouTubeVideoFormat";
 
 export interface VideoFormatRepositoryInterface {
-    createMany(video: Video, videoFormats: videoFormat[]): Promise<VideoFormat[]>
+    createMany(video: Video, youTubeVideoFormatInterfaces: YouTubeVideoFormatInterface[]): Promise<VideoFormat[]>
     findById(id: number): Promise<VideoFormat>;
     findAllFor(video: Video): Promise<VideoFormat[]>;
     existsFor(video: Video): Promise<boolean>;
@@ -13,20 +18,15 @@ export interface VideoFormatRepositoryInterface {
 }
 
 export class VideoFormatRepository implements VideoFormatRepositoryInterface {
-    async createMany(video: Video, videoFormats: videoFormat[]): Promise<VideoFormat[]> {
+    async createMany(video: Video, youTubeVideoFormatInterfaces: YouTubeVideoFormatInterface[]): Promise<VideoFormat[]> {
         const formats: VideoFormat[] = await VideoFormat.bulkCreate(
             Array.from(
-                videoFormats.filter((videoFormat: videoFormat) => Boolean(videoFormat.hasVideo))
-                    .sort((element: videoFormat, comparable: videoFormat) => (element.bitrate ?? 0) - (comparable.bitrate ?? 0))
-                    .reduce((a, b) => a.has(b.qualityLabel) ? a: a.set(b.qualityLabel, b), new Map<string, videoFormat>())
+                youTubeVideoFormatInterfaces.filter((youTubeVideoFormat: YouTubeVideoFormatInterface) => youTubeVideoFormat.isVideoCodec('H.264, acc'))
+                    .sort((element: YouTubeVideoFormatInterface, comparable: YouTubeVideoFormatInterface) => element.getVideoBitrate() - comparable.getVideoBitrate())
+                    .reduce((map: Map<string, YouTubeVideoFormatInterface>, element: YouTubeVideoFormatInterface): Map<string, YouTubeVideoFormatInterface> => map.has(element.getQualityLabel()) ? map: map.set(element.getQualityLabel(), element), new Map<string, YouTubeVideoFormatInterface>())
                     .values()
-            ).map(format => ({
-                video_id: video.id,
-                format: JSON.stringify(format),
-                label: `video: ${format.qualityLabel} ${format.fps ?? 25}fps`,
-            }))
+            ).map((videoFormat: YouTubeVideoFormatInterface) => videoFormat.toVideoFormatModel(video))
         );
-
 
         return Promise.resolve(formats);
     }

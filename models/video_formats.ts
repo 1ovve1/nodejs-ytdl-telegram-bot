@@ -43,7 +43,7 @@ VideoFormat.init(
     {
         sequelize,  // Pass the Sequelize instance
         tableName: 'video_formats',  // The table name (should match your DB table)
-        modelName: 'VideoFormats',
+        modelName: 'VideoFormat',
         updatedAt: "updated_at",
         createdAt: "created_at",
     }

@@ -9,7 +9,7 @@ import KeyboardButtonCallback = Api.KeyboardButtonCallback;
 import {YouTubeService, YouTubeServiceInterface} from "../../../Services/YouTube/YouTubeService";
 import {VideoRepository, VideoRepositoryInterface} from "../../../Repositories/VideoRepository";
 import Video from "../../../../models/videos";
-import VideoFormat from "../../../../models/formats";
+import VideoFormat from "../../../../models/video_formats";
 import {VideoFormatRepository, VideoFormatRepositoryInterface} from "../../../Repositories/VideoFormatRepository";
 import {forwardMessages} from "telegram/client/messages";
 

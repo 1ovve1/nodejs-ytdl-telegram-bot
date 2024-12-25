@@ -3,6 +3,7 @@ import {Client} from "./Telegram/Client";
 import {CommandInterface} from "./Telegram/Commands/Command";
 import {MessageHandlerInterface} from "./Telegram/Handlers/MessageHandler";
 import {CallbackHandlerInterface} from "./Telegram/Callbacks/CallbackHandler";
+import environment from "../environment";
 
 export interface AppInterface {
     _botToken: string;
@@ -38,7 +39,7 @@ export class App implements AppInterface {
             new StringSession(this._stringSession),
             this._botApiId,
             this._botApiHash,
-            { connectionRetries: 5 }
+            { connectionRetries: 5, testServers: environment?.APP_ENV !== 'production' },
         );
 
         await client.start({

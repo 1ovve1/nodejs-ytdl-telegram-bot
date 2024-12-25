@@ -4,6 +4,10 @@ import {DatabaseHandler} from "./app/Telegram/Handlers/DatabaseHandler";
 import environment from "./environment";
 import {YouTubeLinkHandler} from "./app/Telegram/Handlers/YouTube/YouTubeLinkHandler";
 import {DownloadVideoCallbackQuery} from "./app/Telegram/Callbacks/DownloadVideoCallbackQuery";
+import {YouTubeService, YouTubeServiceInterface} from "./app/Services/YouTube/YouTubeService";
+import db from "./models";
+
+
 
 const app = new App(
     String(environment?.BOT_TOKEN),
@@ -16,9 +20,21 @@ const app = new App(
     new YouTubeLinkHandler()
 ]).setCallbackHandlers([
     new DownloadVideoCallbackQuery()
-])
+]);
 
-app.run();
+
+// app.run();
+
+(async () => {
+    const youTubeService: YouTubeServiceInterface = new YouTubeService();
+
+    const video = (await db.Video.findAll())[0];
+    const videFormat = (await db.VideoFormat.findAll({where: {video_id: video.id}}))[0]
+
+    if (videFormat) {
+        await youTubeService.download(video, videFormat);
+    }
+})();
 
 // const BOT_TOKEN: string = process.env.BOT_TOKEN ?? '';
 // const BOT_API_ID: number = parseInt(process.env.BOT_API_ID ?? '');

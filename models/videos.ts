@@ -1,6 +1,6 @@
 import { Model, DataTypes, Optional } from 'sequelize';
 import sequelize from '../sequelize';
-import VideoFormat from "./formats";  // Import the configured Sequelize instance
+import VideoFormat from "./video_formats";  // Import the configured Sequelize instance
 
 interface VideoAttributes {
    id: number;
