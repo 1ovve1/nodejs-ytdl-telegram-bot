@@ -1,5 +1,5 @@
 import {CommandInterface} from "./Commands/Command";
-import {TelegramClient} from "telegram";
+import {Api, TelegramClient} from "telegram";
 import {Session} from "telegram/sessions";
 import {TelegramClientParams} from "telegram/client/telegramBaseClient";
 import {BotAuthParams} from "telegram/client/auth";
@@ -7,6 +7,7 @@ import {NewMessageEvent} from "telegram/events";
 import {MessageHandlerInterface} from "./Handlers/MessageHandler";
 import {CallbackHandlerInterface} from "./Callbacks/CallbackHandler";
 import {CallbackQueryEvent} from "telegram/events/CallbackQuery";
+import UpdateBotCallbackQuery = Api.UpdateBotCallbackQuery;
 
 export interface ClientInterface {
     start(authParams: BotAuthParams): Promise<void>;
@@ -52,7 +53,7 @@ export class Client extends TelegramClient implements ClientInterface {
 
     addCallbackHandler(handler: CallbackHandlerInterface): this {
         this.addEventHandler(
-            async (event: CallbackQueryEvent): Promise<void> => {
+            async (event: UpdateBotCallbackQuery): Promise<void> => {
                 if (event.data && handler.match(event.data)) {
                     await handler.handle(event, this);
                 }
