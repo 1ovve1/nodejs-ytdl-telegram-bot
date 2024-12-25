@@ -70,15 +70,15 @@ export class YouTubeVideoFormat implements YouTubeVideoFormatInterface {
     }
 
     getQualityLabel(): string {
-        return this.videoFormat.qualityLabel;
+        return this.videoFormat.qualityLabel ?? '';
     }
 
     getQuality(): string {
-        return this.videoFormat.quality;
+        return this.videoFormat.quality ?? '';
     }
 
     getUrl(): string {
-        return this.videoFormat.url;
+        return this.videoFormat.url ?? '';
     }
 
     toVideoFormatModel(video: Video): VideoFormat {
@@ -165,9 +165,9 @@ export class YouTubeVideoFormatChecker implements YouTubeVideoFormatCheckerInter
         return YouTubeVideoFormatChecker.replicate(this);
     }
 
-    isVideoCodec(coedc: string): YouTubeVideoFormatCheckerInterface {
+    isVideoCodec(codec: string): YouTubeVideoFormatCheckerInterface {
         this.setCallbacksBuffer(
-            () => Promise.resolve(this.youTubeVideoFormat.isVideoCodec(coedc))
+            () => Promise.resolve(this.youTubeVideoFormat.isVideoCodec(codec))
         );
 
         return YouTubeVideoFormatChecker.replicate(this);
