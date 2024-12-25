@@ -47,7 +47,7 @@ export class YouTubeService implements YouTubeServiceInterface {
 
                 const youTubeVideoInfo: YouTubeVideoInfoInterface = await this.getInfo(video);
 
-                const videoFormat: YouTubeVideoFormatInterface = await youTubeVideoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasVideo().isQuality(chosenYouTubeVideoFormat.getQuality()).isVideoCodec('H.264').isUrlOk().check());
+                const videoFormat: YouTubeVideoFormatInterface = await youTubeVideoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasVideo().isQualityLabel(chosenYouTubeVideoFormat.getQualityLabel()).isQuality(chosenYouTubeVideoFormat.getQuality()).isVideoCodec('H.264').isUrlOk().check());
                 const audioFormat: YouTubeVideoFormatInterface = await youTubeVideoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasAudio().isAudioCodec('mp4a').isUrlOk().check());
 
                 ffmpeg()

@@ -15,6 +15,8 @@ export interface YouTubeVideoFormatInterface {
 
     isQuality(quality: string): boolean;
 
+    isQualityLabel(qualityLabel: string): boolean;
+
     isUrlOk(): Promise<boolean>;
 
     getVideoBitrate(): number;
@@ -38,15 +40,19 @@ export class YouTubeVideoFormat implements YouTubeVideoFormatInterface {
     }
 
     hasVideo(): boolean {
-        return this.videoFormat.hasVideo;
+        return this.videoFormat.hasVideo ?? false;
     }
 
     hasAudio(): boolean {
-        return this.videoFormat.hasAudio;
+        return this.videoFormat.hasAudio ?? false;
     }
 
     isQuality(quality: string): boolean {
-        return this.videoFormat.quality === quality;
+        return this.getQuality() === quality;
+    }
+
+    isQualityLabel(qualityLabel: string): boolean {
+        return this.getQualityLabel() === qualityLabel;
     }
 
     isVideoCodec(codec: string): boolean {
@@ -58,7 +64,11 @@ export class YouTubeVideoFormat implements YouTubeVideoFormatInterface {
     }
 
     async isUrlOk(): Promise<boolean> {
-        return (await fetch(this.getUrl())).ok;
+        try {
+            return (await fetch(this.getUrl())).ok;
+        } catch (err) {
+            return false;
+        }
     }
 
     getVideoBitrate(): number {
@@ -97,6 +107,8 @@ export interface YouTubeVideoFormatCheckerInterface {
 
     isQuality(quality: string): YouTubeVideoFormatCheckerInterface;
 
+    isQualityLabel(qualityLabel: string): YouTubeVideoFormatCheckerInterface;
+
     isVideoCodec(codec: string): YouTubeVideoFormatCheckerInterface;
 
     isAudioCodec(codec: string): YouTubeVideoFormatCheckerInterface;
@@ -131,8 +143,6 @@ export class YouTubeVideoFormatChecker implements YouTubeVideoFormatCheckerInter
         for(const check of this.callbacksBuffer) {
             checkValue &&= await check();
 
-            console.log(checkValue);
-
             if (!checkValue) {
                 break;
             }
@@ -160,6 +170,14 @@ export class YouTubeVideoFormatChecker implements YouTubeVideoFormatCheckerInter
     isQuality(quality: string): YouTubeVideoFormatCheckerInterface {
         this.setCallbacksBuffer(
             () => Promise.resolve(this.youTubeVideoFormat.isQuality(quality))
+        )
+
+        return YouTubeVideoFormatChecker.replicate(this);
+    }
+
+    isQualityLabel(qualityLabel: string): YouTubeVideoFormatCheckerInterface {
+        this.setCallbacksBuffer(
+            () => Promise.resolve(this.youTubeVideoFormat.isQualityLabel(qualityLabel))
         )
 
         return YouTubeVideoFormatChecker.replicate(this);
