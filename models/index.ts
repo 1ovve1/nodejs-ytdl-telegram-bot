@@ -3,6 +3,8 @@ import sequelize from '../sequelize';  // Import the configured Sequelize instan
 import User from './users';
 import Video from "./videos";
 import VideoFormat from "./video_formats";
+import ChatUser from "./chat_users";
+import Chat from "./chats";
 
 // Initialize models
 const db = {
@@ -10,7 +12,9 @@ const db = {
   Sequelize,  // The Sequelize library (we'll use it for validation, etc.)
   User,       // Add your models here
   Video,
-  VideoFormat
+  VideoFormat,
+  Chat,
+  ChatUser,
 };
 
 export default db;

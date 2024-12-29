@@ -2,7 +2,6 @@ import {MessageHandlerInterface} from "../MessageHandler";
 import {NewMessageEvent} from "telegram/events";
 import {Api} from "telegram";
 import Client = Api.Client;
-import {videoFormat} from "@distube/ytdl-core";
 import KeyboardButtonRow = Api.KeyboardButtonRow;
 import ReplyInlineMarkup = Api.ReplyInlineMarkup;
 import KeyboardButtonCallback = Api.KeyboardButtonCallback;
@@ -11,7 +10,6 @@ import {VideoRepository, VideoRepositoryInterface} from "../../../Repositories/V
 import Video from "../../../../models/videos";
 import VideoFormat from "../../../../models/video_formats";
 import {VideoFormatRepository, VideoFormatRepositoryInterface} from "../../../Repositories/VideoFormatRepository";
-import {forwardMessages} from "telegram/client/messages";
 
 export class YouTubeLinkHandler implements MessageHandlerInterface {
     readonly YOUTUBE_LINK_REG: RegExp = /^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube(?:-nocookie)?\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|live\/|v\/)?)([\w\-]+)(\S+)?$/g;
@@ -49,7 +47,7 @@ export class YouTubeLinkHandler implements MessageHandlerInterface {
 
         await client.sendMessage(event.message.chatId, {
             replyTo: event.message.id,
-            message: "Video",
+            message: "Выберите качество:",
             buttons: new ReplyInlineMarkup({
                 rows
             })

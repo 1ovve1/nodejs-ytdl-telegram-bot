@@ -6,21 +6,15 @@ import cookies from "./../../../cookies.json";
 import { YouTubeVideoFormat, YouTubeVideoFormatCheckerInterface, YouTubeVideoFormatInterface } from "./YouTubeVideoFormat";
 import {YouTubeVideoInfoInterface} from "./YouTubeVideoInfo";
 
-export interface StoredYouTubeVideoInterface {
-    destination: string;
-    info: YouTubeVideoInfoInterface;
-}
 
 export interface YouTubeServiceInterface {
-    download(video: Video, format: VideoFormat): Promise<StoredYouTubeVideoInterface>;
+    getMetaDataFrom(video: Video, format: VideoFormat): Promise<YouTubeMetaDataInterface>;
 
     getFormats(video: Video): Promise<YouTubeVideoFormatInterface[]>;
     getInfo(vide: Video): Promise<YouTubeVideoInfoInterface>
 }
 
 export class YouTubeService implements YouTubeServiceInterface {
-
-    readonly destinationPath: string = "build/storage";
 
     private readonly agentOptions: object;
     private readonly cookies: Cookie[];
@@ -36,41 +30,23 @@ export class YouTubeService implements YouTubeServiceInterface {
         this.agent = ytdl.createAgent(this.cookies, this.agentOptions);
     }
 
-    async download(video: Video, format: VideoFormat): Promise<StoredYouTubeVideoInterface> {
-        const resultOutPath: string = `${this.destinationPath}/result_${video.id}.mp4`;
+    async getMetaDataFrom(video: Video, format: VideoFormat): Promise<YouTubeMetaDataInterface> {
 
-        return new Promise<StoredYouTubeVideoInterface>(async (resolve: (result: StoredYouTubeVideoInterface) => void, reject: (err: Error) => void): Promise<void> => {
+        return new Promise<YouTubeMetaDataInterface>(async (resolve: (result: YouTubeMetaDataInterface) => void, reject: (err: Error) => void): Promise<void> => {
             try {
-                console.log(`Download video: ${video.id}.mp4...`);
+                console.log(`Download video ${video.id}...`);
 
                 const chosenYouTubeVideoFormat: YouTubeVideoFormatInterface = new YouTubeVideoFormat(JSON.parse(format.format) as videoFormat);
 
-                const youTubeVideoInfo: YouTubeVideoInfoInterface = await this.getInfo(video);
+                const videoInfo: YouTubeVideoInfoInterface = await this.getInfo(video);
+                const videoFormat: YouTubeVideoFormatInterface = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasVideo().isQualityLabel(chosenYouTubeVideoFormat.getQualityLabel()).isQuality(chosenYouTubeVideoFormat.getQuality()).hasVideo().isUrlOk().check());
+                const audioFormat: YouTubeVideoFormatInterface = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasAudio().isAudioCodec('mp4a').isUrlOk().check());
 
-                const videoFormat: YouTubeVideoFormatInterface = await youTubeVideoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasVideo().isQualityLabel(chosenYouTubeVideoFormat.getQualityLabel()).isQuality(chosenYouTubeVideoFormat.getQuality()).isVideoCodec('H.264').isUrlOk().check());
-                const audioFormat: YouTubeVideoFormatInterface = await youTubeVideoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasAudio().isAudioCodec('mp4a').isUrlOk().check());
-
-                ffmpeg()
-                    .input(videoFormat.getUrl())
-                    .input(audioFormat.getUrl())
-                    .outputOptions('-c:v copy')
-                    .outputOptions('-c:a aac')
-                    .output(resultOutPath)
-                    .outputFormat('mp4')
-                    .on('end', () => {
-                        console.log('Audio and Video combined successfully!');
-
-                        resolve({
-                            destination: resultOutPath,
-                            info: youTubeVideoInfo
-                        } as StoredYouTubeVideoInterface);
-                    })
-                    .on('error', (err: Error) => {
-                        console.error('Error during FFmpeg process:', err);
-
-                        reject(err);
-                    })
-                    .run();
+                resolve({
+                    videoInfo,
+                    audioFormat,
+                    videoFormat
+                } as YouTubeMetaDataInterface)
 
             } catch (error) {
                 console.error('Error downloading audio or video:', error);
@@ -85,4 +61,10 @@ export class YouTubeService implements YouTubeServiceInterface {
     async getInfo(video: Video): Promise<YouTubeVideoInfoInterface> {
         return new YouTubeVideoInfoInterface(await ytdl.getInfo(video.url, { agent: this.agent }));
     }
+}
+
+export interface YouTubeMetaDataInterface {
+    videoInfo: YouTubeVideoInfoInterface;
+    videoFormat: YouTubeVideoFormatInterface;
+    audioFormat: YouTubeVideoFormatInterface;
 }
