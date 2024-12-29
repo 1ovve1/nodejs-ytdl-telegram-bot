@@ -40,14 +40,19 @@ export class DownloadVideoCallbackQuery implements CallbackHandlerInterface {
                         text: "Начинаю загрузку...",
                     })
 
+                    let progressValue: number = 0;
                     const videoFileStream = await this.ffmpegService.combineAudioAndVideoFromYouTubeStream(
                         youTubeMetaData.videoFormat,
                         youTubeMetaData.audioFormat,
                         (progress) => {
-                            client.editMessage(user.username, {
-                                message: event.msgId,
-                                text: `${Math.round(progress.percent ?? 0)}%...`,
-                            })
+
+                            if (progressValue !== progress.percent) {
+                                client.editMessage(user.username, {
+                                    message: event.msgId,
+                                    text: `${Math.round(progressValue)}%...`,
+                                })
+                                progressValue = progress.percent ?? 0;
+                            }
                         }
                     )
 

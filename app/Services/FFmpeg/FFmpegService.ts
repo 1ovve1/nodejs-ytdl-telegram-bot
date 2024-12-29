@@ -24,7 +24,7 @@ export class FFmpegService implements FFmpegServiceInterface {
         const resultOutPath: string = `${this.destinationPath}/result_${Date.now().toString()}.mp4`;
 
         return new Promise<ReadStream>((resolve, reject) => {
-            const onProgressThrottle = throttle(1000, (progress: FFmpegProgressEvent) => {
+            const onProgressThrottle = throttle(2000, (progress: FFmpegProgressEvent) => {
                 if (onProgress) {
                     onProgress(progress);
                 }
