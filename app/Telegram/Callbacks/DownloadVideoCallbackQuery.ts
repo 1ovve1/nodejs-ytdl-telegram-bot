@@ -49,9 +49,9 @@ export class DownloadVideoCallbackQuery implements CallbackHandlerInterface {
                             if (progressValue !== progress.percent) {
                                 client.editMessage(user.username, {
                                     message: event.msgId,
-                                    text: `${Math.round(progressValue)}%...`,
+                                    text: `${progressValue}%...`,
                                 })
-                                progressValue = progress.percent ?? 0;
+                                progressValue = Math.round(progressValue ?? 0);
                             }
                         }
                     )
