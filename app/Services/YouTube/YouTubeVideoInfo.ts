@@ -13,7 +13,9 @@ export interface YouTubeVideoInfoInterface {
 
     getFormatsChecker(): YouTubeVideoFormatCheckerInterface[];
 
-    findInFormats(): Promise<YouTubeVideoFormatInterface>
+    findInFormatsChecker(condition: (youTubeFormatChecker: YouTubeVideoFormatCheckerInterface) => Promise<boolean>): Promise<YouTubeVideoFormatInterface>;
+
+    getTitle(): string;
 }
 
 export class YouTubeVideoInfoInterface implements YouTubeVideoInfoInterface {
@@ -25,6 +27,10 @@ export class YouTubeVideoInfoInterface implements YouTubeVideoInfoInterface {
 
     getDescription(): string {
         return this.videoInfo.videoDetails.description ?? '';
+    }
+
+    getTitle(): string {
+        return this.videoInfo.videoDetails.title ?? '';
     }
 
     getFormats(): YouTubeVideoFormatInterface[] {

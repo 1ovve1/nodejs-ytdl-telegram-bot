@@ -4,6 +4,7 @@ import {DatabaseHandler} from "./app/Telegram/Handlers/DatabaseHandler";
 import environment from "./environment";
 import {YouTubeLinkHandler} from "./app/Telegram/Handlers/YouTube/YouTubeLinkHandler";
 import {DownloadVideoCallbackQuery} from "./app/Telegram/Callbacks/DownloadVideoCallbackQuery";
+import {DownloadAudioCallbackQuery} from "./app/Telegram/Callbacks/DownloadAudioCallbackQuery";
 
 
 const app = new App(
@@ -16,7 +17,8 @@ const app = new App(
     new DatabaseHandler(),
     new YouTubeLinkHandler()
 ]).setCallbackHandlers([
-    new DownloadVideoCallbackQuery()
+    new DownloadVideoCallbackQuery(),
+    new DownloadAudioCallbackQuery(),
 ]);
 
 

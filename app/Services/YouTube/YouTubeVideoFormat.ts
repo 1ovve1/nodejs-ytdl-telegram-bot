@@ -1,6 +1,7 @@
 import {videoFormat} from "@distube/ytdl-core";
 import {VideoFormatCreationAttributes} from "../../../models/video_formats";
 import Video from "../../../models/videos";
+import {AudioFormatCreationAttributes} from "../../../models/audio_formats";
 
 type CallableCheck = () => Promise<boolean>;
 
@@ -12,6 +13,8 @@ export interface YouTubeVideoFormatInterface {
     isVideoCodec(codec: string): boolean;
 
     isAudioCodec(codec: string): boolean;
+
+    isAudioBitrate(audioBitrate: number): boolean;
 
     isQuality(quality: string): boolean;
 
@@ -30,6 +33,8 @@ export interface YouTubeVideoFormatInterface {
     getQualityLabel(): string;
 
     toVideoFormatModel(video: Video): VideoFormatCreationAttributes;
+
+    toAudioFormatModel(video: Video): AudioFormatCreationAttributes;
 }
 
 export class YouTubeVideoFormat implements YouTubeVideoFormatInterface {
@@ -61,6 +66,10 @@ export class YouTubeVideoFormat implements YouTubeVideoFormatInterface {
 
     isAudioCodec(codec: string): boolean {
         return this.hasAudio() && Boolean(this.videoFormat.audioCodec?.startsWith(codec) ?? false);
+    }
+
+    isAudioBitrate(audioBitrate: number): boolean {
+        return this.hasAudio() && this.getAudioBitrate() === audioBitrate;
     }
 
     async isUrlOk(): Promise<boolean> {
@@ -98,6 +107,14 @@ export class YouTubeVideoFormat implements YouTubeVideoFormatInterface {
             label: `${this.getQualityLabel()} ${this.videoFormat.fps ?? 25}fps`,
         };
     }
+
+    toAudioFormatModel(video: Video): AudioFormatCreationAttributes {
+        return {
+            video_id: video.id,
+            format: JSON.stringify(this.videoFormat),
+            label: `Only Audio`,
+        };
+    }
 }
 
 export interface YouTubeVideoFormatCheckerInterface {
@@ -112,6 +129,8 @@ export interface YouTubeVideoFormatCheckerInterface {
     isVideoCodec(codec: string): YouTubeVideoFormatCheckerInterface;
 
     isAudioCodec(codec: string): YouTubeVideoFormatCheckerInterface;
+
+    isAudioBitrate(audioBitrate: number): YouTubeVideoFormatCheckerInterface
 
     isUrlOk(): YouTubeVideoFormatCheckerInterface;
 
@@ -198,6 +217,15 @@ export class YouTubeVideoFormatChecker implements YouTubeVideoFormatCheckerInter
 
         return YouTubeVideoFormatChecker.replicate(this);
     }
+
+    isAudioBitrate(audioBitrate: number): YouTubeVideoFormatCheckerInterface {
+        this.setCallbacksBuffer(
+            () => Promise.resolve(this.youTubeVideoFormat.isAudioBitrate(audioBitrate))
+        );
+
+        return YouTubeVideoFormatChecker.replicate(this);
+    }
+
 
     isUrlOk(): YouTubeVideoFormatCheckerInterface {
         this.setCallbacksBuffer(

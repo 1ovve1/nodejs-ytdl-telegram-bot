@@ -5,6 +5,7 @@ import Video from "./videos";
 import VideoFormat from "./video_formats";
 import ChatUser from "./chat_users";
 import Chat from "./chats";
+import AudioFormat from "./audio_formats";
 
 // Initialize models
 const db = {
@@ -13,6 +14,7 @@ const db = {
   User,       // Add your models here
   Video,
   VideoFormat,
+  AudioFormat,
   Chat,
   ChatUser,
 };

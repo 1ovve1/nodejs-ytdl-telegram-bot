@@ -10,6 +10,7 @@ import {VideoRepository, VideoRepositoryInterface} from "../../../Repositories/V
 import Video from "../../../../models/videos";
 import VideoFormat from "../../../../models/video_formats";
 import {VideoFormatRepository, VideoFormatRepositoryInterface} from "../../../Repositories/VideoFormatRepository";
+import {AudioFormatRepository, AudioFormatRepositoryInterface} from "../../../Repositories/AudioFormatRepository";
 
 export class YouTubeLinkHandler implements MessageHandlerInterface {
     readonly YOUTUBE_LINK_REG: RegExp = /^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube(?:-nocookie)?\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|live\/|v\/)?)([\w\-]+)(\S+)?$/g;
@@ -17,7 +18,8 @@ export class YouTubeLinkHandler implements MessageHandlerInterface {
     readonly youtubeService: YouTubeServiceInterface = new YouTubeService();
 
     readonly videoRepository: VideoRepositoryInterface = new VideoRepository();
-    readonly formatRepository: VideoFormatRepositoryInterface = new VideoFormatRepository();
+    readonly videoFormatRepository: VideoFormatRepositoryInterface = new VideoFormatRepository();
+    readonly audioFormatRepository: AudioFormatRepositoryInterface = new AudioFormatRepository();
 
     async handle(event: NewMessageEvent, client: Client): Promise<void> {
         const videoUrl: string = event.message.message;
@@ -28,13 +30,25 @@ export class YouTubeLinkHandler implements MessageHandlerInterface {
 
         const video: Video = await this.videoRepository.create(videoUrl);
 
-        const videoFormats = await this.formatRepository.createMany(video, await this.youtubeService.getFormats(video));
+        const formats = await this.youtubeService.getFormats(video);
+
+        const videoFormats = await this.videoFormatRepository.createMany(video, formats);
+        const audioFormat = await this.audioFormatRepository.create(video, formats);
 
         const rows = videoFormats.map(format => new KeyboardButtonRow({
             buttons: [
                 new KeyboardButtonCallback({
                     text: format.label,
                     data: Buffer.from(`video_format:${format.id}`),
+                })
+            ]
+        }));
+
+        rows.push(new KeyboardButtonRow({
+            buttons: [
+                new KeyboardButtonCallback({
+                    text: audioFormat.label,
+                    data: Buffer.from(`audio_format:${audioFormat.id}`)
                 })
             ]
         }));
