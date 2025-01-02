@@ -15,6 +15,7 @@ export class YouTubeLinkHandler implements MessageHandlerInterface {
     readonly YOUTUBE_LINK_REG: RegExp = /^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube(?:-nocookie)?\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|live\/|v\/)?)([\w\-]+)(\S+)?$/g;
 
     readonly youtubeService: YouTubeServiceInterface = new YouTubeService();
+
     readonly videoRepository: VideoRepositoryInterface = new VideoRepository();
     readonly formatRepository: VideoFormatRepositoryInterface = new VideoFormatRepository();
 
@@ -25,18 +26,11 @@ export class YouTubeLinkHandler implements MessageHandlerInterface {
             return;
         }
 
-        const video: Video = await this.videoRepository.findOrCreate(videoUrl);
-        let formats: VideoFormat[];
+        const video: Video = await this.videoRepository.create(videoUrl);
 
-        if (await this.formatRepository.existsFor(video)) {
-            formats = await this.formatRepository.findAllFor(video);
-        } else {
-            const videoFormats = await this.youtubeService.getFormats(video);
+        const videoFormats = await this.formatRepository.createMany(video, await this.youtubeService.getFormats(video));
 
-            formats = await this.formatRepository.createMany(video, videoFormats);
-        }
-
-        const rows = formats.map(format => new KeyboardButtonRow({
+        const rows = videoFormats.map(format => new KeyboardButtonRow({
             buttons: [
                 new KeyboardButtonCallback({
                     text: format.label,

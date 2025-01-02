@@ -2,7 +2,8 @@ import db from "../../models";
 import Video from "../../models/videos";
 
 export interface VideoRepositoryInterface {
-    findOrCreate(url: string): Promise<Video>
+    findOrCreate(url: string): Promise<Video>;
+    create(url: string): Promise<Video>;
 }
 
 export class VideoRepository implements VideoRepositoryInterface {
@@ -18,5 +19,12 @@ export class VideoRepository implements VideoRepositoryInterface {
         }
 
         return Promise.resolve(video);
+    }
+
+    async create(url: string): Promise<Video>
+    {
+        return db.Video.create({
+            url
+        });
     }
 }

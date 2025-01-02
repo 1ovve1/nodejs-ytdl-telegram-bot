@@ -7,10 +7,13 @@ import {Api} from "telegram";
 import UpdateBotCallbackQuery = Api.UpdateBotCallbackQuery;
 import db from "../../../models";
 import {FFmpegService, FFmpegServiceInterface} from "../../Services/FFmpeg/FFmpegService";
+import {VideoQueueService, VideoQueueServiceInterface} from "../../Services/YouTube/VideoQueue/VideoQueueService";
 
 export class DownloadVideoCallbackQuery implements CallbackHandlerInterface {
-    readonly videoFormatRepository: VideoFormatRepositoryInterface = new VideoFormatRepository();
     readonly youTubeService: YouTubeServiceInterface = new YouTubeService();
+    readonly videoQueueService: VideoQueueServiceInterface = VideoQueueService.make();
+
+    readonly videoFormatRepository: VideoFormatRepositoryInterface = new VideoFormatRepository();
     readonly ffmpegService: FFmpegServiceInterface = new FFmpegService();
 
     async handle(event: UpdateBotCallbackQuery, client: Client): Promise<void> {
@@ -20,6 +23,8 @@ export class DownloadVideoCallbackQuery implements CallbackHandlerInterface {
             const videoFormat = await this.videoFormatRepository.findById(videFormatId);
             const video = await this.videoFormatRepository.video(videoFormat);
 
+            this.videoQueueService.push(video);
+
             if (event.userId) {
                 const user = await db.User.findOne({where: {tg_id: Number(event.userId)}});
 
@@ -27,57 +32,65 @@ export class DownloadVideoCallbackQuery implements CallbackHandlerInterface {
                     return;
                 }
 
-                try {
-                    await client.editMessage(user.username, {
-                        message: event.msgId,
-                        text: "Загружаю метаданные...",
-                    })
+                await this.videoQueueService.wait(video, async () => {
 
-                    const youTubeMetaData: YouTubeMetaDataInterface = await this.youTubeService.getMetaDataFrom(video, videoFormat);
+                        try {
+                            await client.editMessage(user.username, {
+                                message: event.msgId,
+                                text: "Загружаю метаданные...",
+                            })
 
-                    await client.editMessage(user.username, {
-                        message: event.msgId,
-                        text: "Начинаю загрузку...",
-                    })
+                            const youTubeMetaData: YouTubeMetaDataInterface = await this.youTubeService.getMetaDataFrom(video, videoFormat);
 
-                    let progressValueCache: number = 0;
-                    const videoFileStream = await this.ffmpegService.combineAudioAndVideoFromYouTubeStream(
-                        youTubeMetaData.videoFormat,
-                        youTubeMetaData.audioFormat,
-                        (progress) => {
-                            const newPercentageValue = Math.round(progress.percent ?? 0);
+                            await client.editMessage(user.username, {
+                                message: event.msgId,
+                                text: "Начинаю загрузку...",
+                            })
 
-                            if (progressValueCache !== newPercentageValue) {
-                                client.editMessage(user.username, {
-                                    message: event.msgId,
-                                    text: `${newPercentageValue}%...`,
-                                })
-                                progressValueCache = newPercentageValue;
-                            }
+                            let progressValueCache: number = 0;
+                            const videoFileStream = await this.ffmpegService.combineAudioAndVideoFromYouTubeStream(
+                                youTubeMetaData.videoFormat,
+                                youTubeMetaData.audioFormat,
+                                (progress) => {
+                                    const newPercentageValue = Math.round(progress.percent ?? 0);
+
+                                    if (progressValueCache !== newPercentageValue) {
+                                        client.editMessage(user.username, {
+                                            message: event.msgId,
+                                            text: `${newPercentageValue}%...`,
+                                        })
+                                        progressValueCache = newPercentageValue;
+                                    }
+                                }
+                            )
+
+                            await client.editMessage(user.username, {
+                                message: event.msgId,
+                                text: `Выгрузка в телеграмм...`,
+                            })
+
+                            await client.sendMessage(user.username, {
+                                message: youTubeMetaData.videoInfo.getDescription().substring(0, 250) + '...',
+                                file: videoFileStream.path,
+                            })
+
+                            fs.unlinkSync(videoFileStream.path);
+
+                            await client.deleteMessages(user.username, [event.msgId], { revoke: true });
+                        } catch (err) {
+                            await client.editMessage(user.username, {
+                                message: event.msgId,
+                                text: "Произошла ошибка :(",
+                            })
+                        } finally {
+                            await db.Video.destroy({where: { id: video.id }});
                         }
-                    )
-
+                }, async (queueNumber: number) => {
                     await client.editMessage(user.username, {
                         message: event.msgId,
-                        text: `Выгрузка в телеграмм...`,
+                        text: `Ваша позиция в очереди: ${queueNumber}`,
                     })
-
-                    await client.sendMessage(user.username, {
-                        message: youTubeMetaData.videoInfo.getDescription().substring(0, 100) + '...',
-                        file: videoFileStream.path,
-                    })
-
-                    fs.unlinkSync(videoFileStream.path);
-
-                    await client.deleteMessages(user.username, [event.msgId], { revoke: true });
-                } catch (err) {
-                    await client.editMessage(user.username, {
-                        message: event.msgId,
-                        text: "Произошла ошибка :(",
-                    })
-                } finally {
-                    await db.Video.destroy({where: { id: video.id }});
-                }
+                });
             }
         }
     }
