@@ -1,4 +1,6 @@
 import {Api} from "telegram";
+import {MessageButton} from "telegram/tl/custom/messageButton";
+import {message} from "telegram/client";
 
 export interface TelegramDataRepositoryInterface {
     getSenderId(): number;
@@ -8,6 +10,10 @@ export interface TelegramDataRepositoryInterface {
     getChatId(): number;
 
     getMessageContent(): string;
+
+    getKeyboard(): Api.TypeReplyMarkup | undefined;
+
+    getReplyToMessageId(): number | undefined;
 }
 
 export class TelegramDataRepository implements TelegramDataRepositoryInterface {
@@ -31,6 +37,14 @@ export class TelegramDataRepository implements TelegramDataRepositoryInterface {
 
     getMessageContent(): string {
         return this.message.message ?? ''
+    }
+
+    getKeyboard(): Api.TypeReplyMarkup | undefined {
+        return this.message.replyMarkup;
+    }
+
+    getReplyToMessageId(): number | undefined {
+        return this.message.replyToMsgId;
     }
 }
 
@@ -57,5 +71,11 @@ export class CallbackTelegramDataRepository implements TelegramDataRepositoryInt
         return Number(this.callbackQuery.userId);
     }
 
+    getKeyboard(): Api.TypeReplyMarkup | undefined {
+        return undefined;
+    }
 
+    getReplyToMessageId(): number | undefined {
+        return undefined;
+    }
 }

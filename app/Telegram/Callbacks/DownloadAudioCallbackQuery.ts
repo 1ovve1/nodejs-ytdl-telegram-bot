@@ -11,6 +11,8 @@ import {FileSystemService, FileSystemServiceInterface} from "../../Services/File
 import {TelegramServiceInterface} from "../../Services/Telegram/TelegramService";
 import {TelegramDataRepositoryInterface} from "../../Repositories/TelegramDataRepository";
 import {VideoRepository, VideoRepositoryInterface} from "../../Repositories/VideoRepository";
+import {Api} from "telegram";
+import KeyboardButtonCallback = Api.KeyboardButtonCallback;
 
 export class DownloadAudioCallbackQuery implements CallbackHandlerInterface {
     readonly youTubeService: YouTubeServiceInterface = new YouTubeService();
@@ -40,16 +42,25 @@ export class DownloadAudioCallbackQuery implements CallbackHandlerInterface {
                     let progressValueCache: number = 0;
                     const audioFileStream = await this.ffmpegService.downloadFromAudioFormat(
                         youTubeAudioMetaData,
-                        (progress) => {
+                        async (progress, command) => {
                             const newPercentageValue = Math.round(progress.percent ?? 0);
 
                             if (progressValueCache !== newPercentageValue) {
-                                telegramService.editMessage({ content: `${newPercentageValue}%...` });
+                                try {
+                                    await this.videoRepository.isExists(video)
 
-                                progressValueCache = newPercentageValue;
+                                    await telegramService.editMessage({ content: `${newPercentageValue}%...`, keyboard: [new KeyboardButtonCallback({text: "Отмена", data: Buffer.from(`cancel_video:${video.id}`)})] });
+                                    progressValueCache = newPercentageValue;
+                                } catch (_) {
+                                    command.kill("SIGTERM");
+
+                                    throw new Error('SIGTERM');
+                                }
                             }
                         }
                     )
+
+                    youTubeAudioMetaData.audioFormat
 
                     await telegramService.editMessage({ content: `Выгрузка в телеграмм...` });
 
@@ -63,7 +74,11 @@ export class DownloadAudioCallbackQuery implements CallbackHandlerInterface {
                 } catch (err) {
                     console.log(err);
 
-                    await telegramService.editMessage({ content: "Произошла ошибка :(" });
+                    if (err instanceof Error && err.message === "SIGTERM") {
+                        await telegramService.editMessage({ content: "Загрузка аудио остановленна" });
+                    } else {
+                        await telegramService.editMessage({ content: "Произошла ошибка :(" });
+                    }
                 } finally {
                     await this.videoRepository.delete(video)
                 }

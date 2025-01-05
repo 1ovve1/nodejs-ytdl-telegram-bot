@@ -2,7 +2,7 @@ import {ReadStream} from "node:fs";
 import {Api} from "telegram";
 import {Client} from "../../Telegram/Client";
 import {CustomFile} from "telegram/client/uploads";
-import {TelegramDataRepositoryInterface} from "../../Repositories/TelegramDataRepository";
+import {TelegramDataRepository, TelegramDataRepositoryInterface} from "../../Repositories/TelegramDataRepository";
 import {MarkupLike} from "telegram/define";
 import * as fs from "node:fs";
 
@@ -69,18 +69,22 @@ export class TelegramService implements TelegramServiceInterface {
     async sendMessage(params: SendMessageParams): Promise<Api.Message> {
         params.chatId ??= await this.client.getInputEntity(this.telegramData.getSenderId());
 
-        return await this.client.sendMessage(params.chatId, {
+        const message = await this.client.sendMessage(params.chatId, {
             ...params,
             message: params.content,
             buttons: params.keyboard,
         });
+
+        this.replicateTelegramData(message);
+
+        return message;
     }
 
     async editMessage(params: EditMessageParams): Promise<Api.Message> {
         params.chatId ??= await this.client.getInputEntity(this.telegramData.getSenderId());
         params.messageId ??= this.telegramData.getMessageId();
 
-        return await this.client.editMessage(
+        const message = await this.client.editMessage(
             params.chatId,
             {
                 ...params,
@@ -89,6 +93,10 @@ export class TelegramService implements TelegramServiceInterface {
                 buttons: params.keyboard,
             }
         )
+
+        this.replicateTelegramData(message);
+
+        return message;
     }
 
     async deleteMessage(params: DeleteMessageParams): Promise<void> {
@@ -98,6 +106,11 @@ export class TelegramService implements TelegramServiceInterface {
         await this.client.deleteMessages(
             params.chatId, [params.messageId], { revoke: true }
         );
+    }
+
+    private replicateTelegramData(message: Api.Message): void
+    {
+        this.telegramData = new TelegramDataRepository(message);
     }
 }
 
@@ -117,7 +130,7 @@ interface EditMessageParams {
     content: string,
     chatId?: Api.TypeEntityLike,
     messageId?: number,
-    keyboard?: MarkupLike
+    keyboard?: MarkupLike,
 }
 
 interface DeleteMessageParams {

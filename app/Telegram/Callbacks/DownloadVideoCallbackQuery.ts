@@ -7,6 +7,9 @@ import {FileSystemService, FileSystemServiceInterface} from "../../Services/File
 import {VideoRepository, VideoRepositoryInterface} from "../../Repositories/VideoRepository";
 import {TelegramServiceInterface} from "../../Services/Telegram/TelegramService";
 import {TelegramDataRepositoryInterface} from "../../Repositories/TelegramDataRepository";
+import {FfmpegCommand} from "fluent-ffmpeg";
+import {Api} from "telegram";
+import KeyboardButtonCallback = Api.KeyboardButtonCallback;
 
 export class DownloadVideoCallbackQuery implements CallbackHandlerInterface {
     readonly youTubeService: YouTubeServiceInterface = new YouTubeService();
@@ -36,13 +39,20 @@ export class DownloadVideoCallbackQuery implements CallbackHandlerInterface {
                 let progressValueCache: number = 0;
                 const videoFileStream = await this.ffmpegService.combineAudioAndVideoFromYouTubeStream(
                     youTubeMetaData,
-                    (progress) => {
+                    async (progress, command: FfmpegCommand) => {
                         const newPercentageValue = Math.round(progress.percent ?? 0);
 
                         if (progressValueCache !== newPercentageValue) {
-                            telegramService.editMessage({ content: `${newPercentageValue}%...` });
+                            try {
+                                await this.videoRepository.isExists(video)
 
-                            progressValueCache = newPercentageValue;
+                                await telegramService.editMessage({ content: `${newPercentageValue}%...`, keyboard: [new KeyboardButtonCallback({text: "Отмена", data: Buffer.from(`cancel_video:${video.id}`)})] });
+                                progressValueCache = newPercentageValue;
+                            } catch (_) {
+                                command.kill("SIGTERM");
+
+                                throw new Error('SIGTERM');
+                            }
                         }
                     }
                 )
@@ -56,10 +66,16 @@ export class DownloadVideoCallbackQuery implements CallbackHandlerInterface {
                 this.fileSystemService.delete(videoFileStream);
 
                 await telegramService.deleteMessage({});
+
+
             } catch (err) {
                 console.log(err);
 
-                await telegramService.editMessage({ content: "Произошла ошибка :(" });
+                if (err instanceof Error && err.message === "SIGTERM") {
+                    await telegramService.editMessage({ content: "Загрузка видео остановленна" });
+                } else {
+                    await telegramService.editMessage({ content: "Произошла ошибка :(" });
+                }
             } finally {
                 await this.videoRepository.delete(video)
             }

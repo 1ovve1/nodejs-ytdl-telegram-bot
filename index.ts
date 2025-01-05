@@ -5,6 +5,7 @@ import environment from "./environment";
 import {YouTubeLinkHandler} from "./app/Telegram/Handlers/YouTube/YouTubeLinkHandler";
 import {DownloadVideoCallbackQuery} from "./app/Telegram/Callbacks/DownloadVideoCallbackQuery";
 import {DownloadAudioCallbackQuery} from "./app/Telegram/Callbacks/DownloadAudioCallbackQuery";
+import {CancelVideoProcessCallback} from "./app/Telegram/Callbacks/CancelVideoProcessCallback";
 
 
 const app = new App(
@@ -19,6 +20,7 @@ const app = new App(
 ]).setCallbackHandlers([
     new DownloadVideoCallbackQuery(),
     new DownloadAudioCallbackQuery(),
+    new CancelVideoProcessCallback()
 ]);
 
 

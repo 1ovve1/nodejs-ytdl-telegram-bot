@@ -1,6 +1,6 @@
 import {ReadStream} from "node:fs";
 import { throttle } from "throttle-debounce";
-import ffmpeg from "fluent-ffmpeg";
+import ffmpeg, {FfmpegCommand} from "fluent-ffmpeg";
 import {YouTubeVideoFormatInterface} from "../YouTube/YouTubeVideoFormat";
 import * as fs from "node:fs";
 import {YouTubeAudioMetaDataInterface, YouTubeVideoMetaDataInterface} from "../YouTube/YouTubeService";
@@ -20,19 +20,20 @@ export class FFmpegService implements FFmpegServiceInterface {
 
     async combineAudioAndVideoFromYouTubeStream(
         videoMetaData: YouTubeVideoMetaDataInterface,
-        onProgress: FFmpegProgressEvent
+        onProgress: FFmpegProgressEvent = async () => {}
     ): Promise<ReadStream>
     {
         const resultOutPath: string = `${this.destinationPath}/result_${Date.now().toString()}.mp4`;
 
         return new Promise<ReadStream>((resolve, reject) => {
-            const onProgressThrottle = throttle(2000, (progress: FFmpegProgressEventData) => {
-                if (onProgress) {
-                    onProgress(progress);
-                }
+            const onProgressThrottle = throttle(2000, (progress: FFmpegProgressEventData, command: FfmpegCommand) => {
+                onProgress(progress, command).catch((err: Error) => {
+                    reject(err);
+                    fs.unlink(resultOutPath, () => {});
+                });
             })
 
-            ffmpeg()
+            const command = ffmpeg()
                 .input(videoMetaData.videoFormat.getUrl())
                 .input(videoMetaData.audioFormat.getUrl())
                 .outputOptions('-c:v copy')
@@ -40,7 +41,7 @@ export class FFmpegService implements FFmpegServiceInterface {
                 .output(resultOutPath)
                 .outputFormat('mp4')
                 .on('progress', (progress: FFmpegProgressEventData) => {
-                    onProgressThrottle(progress);
+                    onProgressThrottle(progress, command);
                 })
                 .on('end', () => {
                     onProgressThrottle.cancel();
@@ -53,22 +54,25 @@ export class FFmpegService implements FFmpegServiceInterface {
                     console.error('Error during FFmpeg process:', err);
 
                     reject(err);
-                })
-                .run();
+                });
+
+            command.run();
         })
     }
 
-    async downloadFromAudioFormat(audioMetaData: YouTubeAudioMetaDataInterface, onProgress: FFmpegProgressEvent): Promise<ReadStream> {
+    async downloadFromAudioFormat(audioMetaData: YouTubeAudioMetaDataInterface,
+                                  onProgress: FFmpegProgressEvent = async () => {}): Promise<ReadStream> {
         const resultOutPath: string = `${this.destinationPath}/${audioMetaData.videoInfo.getTitle()}.mp3`;
 
         return new Promise<ReadStream>((resolve, reject) => {
-            const onProgressThrottle = throttle(2000, (progress: FFmpegProgressEventData) => {
-                if (onProgress) {
-                    onProgress(progress);
-                }
+            const onProgressThrottle = throttle(2000, (progress: FFmpegProgressEventData, command: FfmpegCommand) => {
+                onProgress(progress, command).catch((err) => {
+                    reject(err);
+                    fs.unlink(resultOutPath, () => {});
+                });
             })
 
-            ffmpeg(audioMetaData.audioFormat.getUrl())
+            const command = ffmpeg(audioMetaData.audioFormat.getUrl())
                 .audioCodec('libmp3lame')   // Set the audio codec to MP3 (libmp3lame)
                 .audioChannels(2)        // Set stereo audio (2 channels)
                 .audioFrequency(44100)   // Set audio frequency (44.1 kHz)
@@ -76,7 +80,7 @@ export class FFmpegService implements FFmpegServiceInterface {
                 .output(resultOutPath)
                 .format('mp3')           // Set output format to WAV
                 .on('progress', (progress: FFmpegProgressEventData) => {
-                    onProgressThrottle(progress);
+                    onProgressThrottle(progress, command);
                 })
                 .on('end', () => {
                     onProgressThrottle.cancel();
@@ -89,8 +93,9 @@ export class FFmpegService implements FFmpegServiceInterface {
                     console.error('Error during FFmpeg process:', err);
 
                     reject(err);
-                })
-                .run();
+                });
+
+            command.run();
         })
     }
 }
@@ -104,4 +109,4 @@ export type FFmpegProgressEventData = {
     percent?: number | undefined;
 };
 
-export type FFmpegProgressEvent = (progress: FFmpegProgressEventData) => void | undefined;
+export type FFmpegProgressEvent = (progress: FFmpegProgressEventData, command: FfmpegCommand) => Promise<void>;
