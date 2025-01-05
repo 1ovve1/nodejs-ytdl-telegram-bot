@@ -1,10 +1,10 @@
+import * as fs from "node:fs";
 import {ReadStream} from "node:fs";
 import {Api} from "telegram";
 import {Client} from "../../Telegram/Client";
 import {CustomFile} from "telegram/client/uploads";
 import {TelegramDataRepository, TelegramDataRepositoryInterface} from "../../Repositories/TelegramDataRepository";
-import {MarkupLike} from "telegram/define";
-import * as fs from "node:fs";
+import {FileLike, MarkupLike} from "telegram/define";
 
 
 export interface TelegramServiceInterface {
@@ -69,22 +69,18 @@ export class TelegramService implements TelegramServiceInterface {
     async sendMessage(params: SendMessageParams): Promise<Api.Message> {
         params.chatId ??= await this.client.getInputEntity(this.telegramData.getSenderId());
 
-        const message = await this.client.sendMessage(params.chatId, {
+        return await this.client.sendMessage(params.chatId, {
             ...params,
             message: params.content,
             buttons: params.keyboard,
         });
-
-        this.replicateTelegramData(message);
-
-        return message;
     }
 
     async editMessage(params: EditMessageParams): Promise<Api.Message> {
         params.chatId ??= await this.client.getInputEntity(this.telegramData.getSenderId());
         params.messageId ??= this.telegramData.getMessageId();
 
-        const message = await this.client.editMessage(
+        return await this.client.editMessage(
             params.chatId,
             {
                 ...params,
@@ -92,11 +88,7 @@ export class TelegramService implements TelegramServiceInterface {
                 message: params.messageId,
                 buttons: params.keyboard,
             }
-        )
-
-        this.replicateTelegramData(message);
-
-        return message;
+        );
     }
 
     async deleteMessage(params: DeleteMessageParams): Promise<void> {
@@ -123,7 +115,7 @@ interface SendMessageParams {
     content: string,
     chatId?: Api.TypeEntityLike,
     keyboard?: MarkupLike,
-    file?: Api.InputFile | Api.InputFileBig,
+    file?: FileLike | FileLike[],
 }
 
 interface EditMessageParams {
