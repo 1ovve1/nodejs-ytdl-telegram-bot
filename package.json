@@ -22,13 +22,16 @@
     "telegram": "^2.26.8",
     "throttle-debounce": "^5.0.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.2",
     "umzug": "^3.8.2"
   },
   "devDependencies": {
+    "@eslint/js": "^9.17.0",
     "@types/fluent-ffmpeg": "^2.1.27",
     "@types/node": "^22.10.2",
     "@types/sequelize": "^4.28.20",
-    "sequelize-cli": "^6.6.2"
+    "eslint": "^9.17.0",
+    "sequelize-cli": "^6.6.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.19.0"
   }
 }

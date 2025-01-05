@@ -1,10 +1,10 @@
 import {CommandInterface} from "./Command";
-import {NewMessageEvent} from "telegram/events";
-import {Client} from "../Client";
+import {TelegramServiceInterface} from "../../Services/Telegram/TelegramService";
+import {TelegramDataRepositoryInterface} from "../../Repositories/TelegramDataRepository";
 
 export class StartCommand implements CommandInterface {
-    async handle(event: NewMessageEvent, client: Client): Promise<void> {
-        await client.sendMessage(Number(event.message.chatId), {message: "Welcome!"})
+    async handle(telegramService: TelegramServiceInterface, telegramData: TelegramDataRepositoryInterface): Promise<void> {
+        await telegramService.sendMessage({ content: "Welcome!" });
     }
 
     name(): string {

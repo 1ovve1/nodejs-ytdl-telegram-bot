@@ -8,9 +8,10 @@ import KeyboardButtonCallback = Api.KeyboardButtonCallback;
 import {YouTubeService, YouTubeServiceInterface} from "../../../Services/YouTube/YouTubeService";
 import {VideoRepository, VideoRepositoryInterface} from "../../../Repositories/VideoRepository";
 import Video from "../../../../models/videos";
-import VideoFormat from "../../../../models/video_formats";
 import {VideoFormatRepository, VideoFormatRepositoryInterface} from "../../../Repositories/VideoFormatRepository";
 import {AudioFormatRepository, AudioFormatRepositoryInterface} from "../../../Repositories/AudioFormatRepository";
+import {TelegramServiceInterface} from "../../../Services/Telegram/TelegramService";
+import {TelegramDataRepositoryInterface} from "../../../Repositories/TelegramDataRepository";
 
 export class YouTubeLinkHandler implements MessageHandlerInterface {
     readonly YOUTUBE_LINK_REG: RegExp = /^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube(?:-nocookie)?\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|live\/|v\/)?)([\w\-]+)(\S+)?$/g;
@@ -21,12 +22,8 @@ export class YouTubeLinkHandler implements MessageHandlerInterface {
     readonly videoFormatRepository: VideoFormatRepositoryInterface = new VideoFormatRepository();
     readonly audioFormatRepository: AudioFormatRepositoryInterface = new AudioFormatRepository();
 
-    async handle(event: NewMessageEvent, client: Client): Promise<void> {
-        const videoUrl: string = event.message.message;
-
-        if (!videoUrl) {
-            return;
-        }
+    async handle(telegramService: TelegramServiceInterface, telegramData: TelegramDataRepositoryInterface): Promise<void> {
+        const videoUrl: string = telegramData.getMessageContent();
 
         const video: Video = await this.videoRepository.create(videoUrl);
 
@@ -53,13 +50,7 @@ export class YouTubeLinkHandler implements MessageHandlerInterface {
             ]
         }));
 
-        await client.sendMessage(event.message.chatId, {
-            replyTo: event.message.id,
-            message: "Выберите качество:",
-            buttons: new ReplyInlineMarkup({
-                rows
-            })
-        });
+        await telegramService.replyTo({content: "Выберите качество:", keyboard: new ReplyInlineMarkup({rows})})
     }
 
     match(messageData: string): boolean {

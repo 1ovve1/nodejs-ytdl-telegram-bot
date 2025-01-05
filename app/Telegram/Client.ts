@@ -6,8 +6,9 @@ import {BotAuthParams} from "telegram/client/auth";
 import {NewMessageEvent} from "telegram/events";
 import {MessageHandlerInterface} from "./Handlers/MessageHandler";
 import {CallbackHandlerInterface} from "./Callbacks/CallbackHandler";
-import {CallbackQueryEvent} from "telegram/events/CallbackQuery";
 import UpdateBotCallbackQuery = Api.UpdateBotCallbackQuery;
+import {CallbackTelegramDataRepository, TelegramDataRepository} from "../Repositories/TelegramDataRepository";
+import {TelegramService} from "../Services/Telegram/TelegramService";
 
 export interface ClientInterface {
     start(authParams: BotAuthParams): Promise<void>;
@@ -31,7 +32,9 @@ export class Client extends TelegramClient implements ClientInterface {
         this.addEventHandler(
             async (event: NewMessageEvent) => {
                 if (event.message && event.message.message.startsWith(`/${command.name()}`)) {
-                    await command.handle(event, this);
+                    const telegramData = new TelegramDataRepository(event.message);
+
+                    await command.handle(new TelegramService(this, telegramData), telegramData);
                 }
             }
         )
@@ -43,7 +46,9 @@ export class Client extends TelegramClient implements ClientInterface {
         this.addEventHandler(
             async (event: NewMessageEvent) => {
                 if (event.message && handler.match(event.message.message)) {
-                    await handler.handle(event, this);
+                    const telegramData = new TelegramDataRepository(event.message);
+
+                    await handler.handle(new TelegramService(this, telegramData), telegramData);
                 }
             }
         );
@@ -55,7 +60,9 @@ export class Client extends TelegramClient implements ClientInterface {
         this.addEventHandler(
             async (event: UpdateBotCallbackQuery): Promise<void> => {
                 if (event.data && handler.match(event.data)) {
-                    await handler.handle(event, this);
+                    const telegramData = new CallbackTelegramDataRepository(event);
+
+                    await handler.handle(new TelegramService(this, telegramData), telegramData);
                 }
             }
         );

@@ -1,105 +1,75 @@
 import {CallbackHandlerInterface} from "./CallbackHandler";
-import {Client} from "../Client";
-import {VideoFormatRepository, VideoFormatRepositoryInterface} from "../../Repositories/VideoFormatRepository";
 import {
-    YouTubeVideoMetaDataInterface,
     YouTubeService,
     YouTubeServiceInterface,
     YouTubeAudioMetaDataInterface
 } from "../../Services/YouTube/YouTubeService";
-import * as fs from "node:fs";
-import {Api} from "telegram";
-import UpdateBotCallbackQuery = Api.UpdateBotCallbackQuery;
-import db from "../../../models";
 import {FFmpegService, FFmpegServiceInterface} from "../../Services/FFmpeg/FFmpegService";
 import {VideoQueueService, VideoQueueServiceInterface} from "../../Services/YouTube/VideoQueue/VideoQueueService";
 import {AudioFormatRepository, AudioFormatRepositoryInterface} from "../../Repositories/AudioFormatRepository";
+import {FileSystemService, FileSystemServiceInterface} from "../../Services/FileSystem/FileSystemService";
+import {TelegramServiceInterface} from "../../Services/Telegram/TelegramService";
+import {TelegramDataRepositoryInterface} from "../../Repositories/TelegramDataRepository";
+import {VideoRepository, VideoRepositoryInterface} from "../../Repositories/VideoRepository";
 
 export class DownloadAudioCallbackQuery implements CallbackHandlerInterface {
     readonly youTubeService: YouTubeServiceInterface = new YouTubeService();
     readonly videoQueueService: VideoQueueServiceInterface = VideoQueueService.make();
     readonly ffmpegService: FFmpegServiceInterface = new FFmpegService();
+    readonly fileSystemService: FileSystemServiceInterface = new FileSystemService();
 
     readonly audioFormatRepository: AudioFormatRepositoryInterface = new AudioFormatRepository();
+    readonly videoRepository: VideoRepositoryInterface = new VideoRepository();
 
-    async handle(event: UpdateBotCallbackQuery, client: Client): Promise<void> {
-        if (event.data) {
-            const audioFormatId = Number(event.data.toString().replace("audio_format:", ""));
+    async handle(telegramService: TelegramServiceInterface, telegramData: TelegramDataRepositoryInterface): Promise<void> {
+        const audioFormatId = Number(telegramData.getMessageContent().replace("audio_format:", ""));
 
-            const audioFormat = await this.audioFormatRepository.findById(audioFormatId);
-            const video = await this.audioFormatRepository.video(audioFormat);
+        const audioFormat = await this.audioFormatRepository.findById(audioFormatId);
+        const video = await this.audioFormatRepository.video(audioFormat);
 
-            this.videoQueueService.push(video);
+        this.videoQueueService.push(video);
 
-            if (event.userId) {
-                const user = await db.User.findOne({where: {tg_id: Number(event.userId)}});
+        await this.videoQueueService.wait(video, async () => {
+                try {
+                    await telegramService.editMessage({ content: "Загружаю метаданные..." });
 
-                if (user === null) {
-                    return;
-                }
+                    const youTubeAudioMetaData: YouTubeAudioMetaDataInterface = await this.youTubeService.getMetaDataFromAudioFormat(video, audioFormat);
 
-                await this.videoQueueService.wait(video, async () => {
+                    await telegramService.editMessage({ content: "Начинаю загрузку..." });
 
-                        try {
-                            await client.editMessage(user.username, {
-                                message: event.msgId,
-                                text: "Загружаю метаданные...",
-                            })
+                    let progressValueCache: number = 0;
+                    const audioFileStream = await this.ffmpegService.downloadFromAudioFormat(
+                        youTubeAudioMetaData,
+                        (progress) => {
+                            const newPercentageValue = Math.round(progress.percent ?? 0);
 
-                            const youTubeAudioMetaData: YouTubeAudioMetaDataInterface = await this.youTubeService.getMetaDataFromAudioFormat(video, audioFormat);
+                            if (progressValueCache !== newPercentageValue) {
+                                telegramService.editMessage({ content: `${newPercentageValue}%...` });
 
-                            await client.editMessage(user.username, {
-                                message: event.msgId,
-                                text: "Начинаю загрузку...",
-                            })
-
-                            let progressValueCache: number = 0;
-                            const videoFileStream = await this.ffmpegService.downloadFromAudioFormat(
-                                youTubeAudioMetaData,
-                                (progress) => {
-                                    const newPercentageValue = Math.round(progress.percent ?? 0);
-
-                                    if (progressValueCache !== newPercentageValue) {
-                                        client.editMessage(user.username, {
-                                            message: event.msgId,
-                                            text: `${newPercentageValue}%...`,
-                                        })
-                                        progressValueCache = newPercentageValue;
-                                    }
-                                }
-                            )
-
-                            await client.editMessage(user.username, {
-                                message: event.msgId,
-                                text: `Выгрузка в телеграмм...`,
-                            })
-
-                            await client.sendMessage(user.username, {
-                                message: youTubeAudioMetaData.videoInfo.getTitle(),
-                                file: videoFileStream.path,
-                            })
-
-                            fs.unlinkSync(videoFileStream.path);
-
-                            await client.deleteMessages(user.username, [event.msgId], { revoke: true });
-                        } catch (err) {
-                            console.log(err);
-
-                            await client.editMessage(user.username, {
-                                message: event.msgId,
-                                text: "Произошла ошибка :(",
-                            })
-                        } finally {
-                            await db.Video.destroy({where: { id: video.id }});
+                                progressValueCache = newPercentageValue;
+                            }
                         }
-                }, async (queueNumber: number) => {
-                    await client.editMessage(user.username, {
-                        message: event.msgId,
-                        text: `Ваша позиция в очереди: ${queueNumber}`,
-                    })
-                });
-            }
-        }
+                    )
+
+                    await telegramService.editMessage({ content: `Выгрузка в телеграмм...` });
+
+                    const file = await telegramService.uploadFile(youTubeAudioMetaData.videoInfo.getTitle(), audioFileStream);
+
+                    await telegramService.sendMessage({content: youTubeAudioMetaData.videoInfo.getTitle(), file})
+
+                    this.fileSystemService.delete(audioFileStream);
+
+                    await telegramService.deleteMessage({});
+                } catch (err) {
+                    console.log(err);
+
+                    await telegramService.editMessage({ content: "Произошла ошибка :(" });
+                } finally {
+                    await this.videoRepository.delete(video)
+                }
+        }, async (queueNumber: number) => {
+            await telegramService.editMessage({ content: `Ваша позиция в очереди: ${queueNumber}` });
+        });
     }
 
     match(data: Buffer): boolean {

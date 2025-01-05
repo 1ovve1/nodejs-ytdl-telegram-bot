@@ -1,9 +1,7 @@
-import {CallbackQueryEvent} from "telegram/events/CallbackQuery";
-import {Client} from "../Client";
-import {Api} from "telegram";
-import UpdateBotCallbackQuery = Api.UpdateBotCallbackQuery;
+import {TelegramServiceInterface} from "../../Services/Telegram/TelegramService";
+import {TelegramDataRepositoryInterface} from "../../Repositories/TelegramDataRepository";
 
 export interface CallbackHandlerInterface {
     match(data: Buffer): boolean;
-    handle(event: UpdateBotCallbackQuery, client: Client): Promise<void>;
+    handle(telegramService: TelegramServiceInterface, telegramData: TelegramDataRepositoryInterface): Promise<void>;
 }

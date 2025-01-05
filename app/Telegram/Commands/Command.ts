@@ -1,7 +1,7 @@
-import {NewMessageEvent} from "telegram/events";
-import {Client} from "../Client";
+import {TelegramServiceInterface} from "../../Services/Telegram/TelegramService";
+import {TelegramDataRepositoryInterface} from "../../Repositories/TelegramDataRepository";
 
 export interface CommandInterface {
     name(): string;
-    handle(event: NewMessageEvent, client: Client): Promise<void>;
+    handle(telegramService: TelegramServiceInterface, telegramData: TelegramDataRepositoryInterface): Promise<void>;
 }
