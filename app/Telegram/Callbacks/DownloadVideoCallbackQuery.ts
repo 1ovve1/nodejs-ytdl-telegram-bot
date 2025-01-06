@@ -61,7 +61,7 @@ export class DownloadVideoCallbackQuery implements CallbackHandlerInterface {
 
                 const file = await telegramService.uploadFile(youTubeMetaData.videoInfo.getTitle(), videoFileStream);
 
-                await telegramService.sendMessage({content: youTubeMetaData.videoInfo.getTitle(), file})
+                await telegramService.sendVideo({content: youTubeMetaData.videoInfo.getTitle(), file, videoFormat: youTubeMetaData.videoFormat.getInstance()})
 
                 this.fileSystemService.delete(videoFileStream);
 

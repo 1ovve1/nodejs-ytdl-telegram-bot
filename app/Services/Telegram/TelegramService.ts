@@ -1,10 +1,12 @@
 import * as fs from "node:fs";
 import {ReadStream} from "node:fs";
-import {Api} from "telegram";
+import {Api, client} from "telegram";
 import {Client} from "../../Telegram/Client";
 import {CustomFile} from "telegram/client/uploads";
 import {TelegramDataRepository, TelegramDataRepositoryInterface} from "../../Repositories/TelegramDataRepository";
 import {FileLike, MarkupLike} from "telegram/define";
+import DocumentAttributeVideo = Api.DocumentAttributeVideo;
+import {videoFormat} from "@distube/ytdl-core";
 
 
 export interface TelegramServiceInterface {
@@ -19,6 +21,8 @@ export interface TelegramServiceInterface {
     editMessage(params: EditMessageParams): Promise<Api.Message>;
 
     deleteMessage(params: DeleteMessageParams): Promise<void>;
+
+    sendVideo(params: VideoMessageParams): Promise<Api.Message>;
 }
 
 export class TelegramService implements TelegramServiceInterface {
@@ -100,9 +104,23 @@ export class TelegramService implements TelegramServiceInterface {
         );
     }
 
-    private replicateTelegramData(message: Api.Message): void
-    {
-        this.telegramData = new TelegramDataRepository(message);
+    async sendVideo(params: VideoMessageParams): Promise<Api.Message> {
+        params.chatId ??= await this.client.getInputEntity(this.telegramData.getSenderId());
+
+        console.log(params.videoFormat);
+
+        return this.client.sendFile(params.chatId, {
+            caption: params.content,
+            file: params.file,
+            attributes: [
+                new DocumentAttributeVideo({
+                    duration: Number(params.videoFormat.approxDurationMs),
+                    w: Number(params.videoFormat.width),
+                    h: Number(params.videoFormat.height),
+                    supportsStreaming: true,
+                })
+            ]
+        });
     }
 }
 
@@ -128,4 +146,11 @@ interface EditMessageParams {
 interface DeleteMessageParams {
     chatId?: Api.TypeEntityLike,
     messageId?: number,
+}
+
+interface VideoMessageParams {
+    videoFormat: videoFormat,
+    content?: string,
+    chatId?: Api.TypeEntityLike,
+    file: FileLike | FileLike[],
 }

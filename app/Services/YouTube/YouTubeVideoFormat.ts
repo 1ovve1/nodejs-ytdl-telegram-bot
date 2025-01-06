@@ -6,6 +6,8 @@ import {AudioFormatCreationAttributes} from "../../../models/audio_formats";
 type CallableCheck = () => Promise<boolean>;
 
 export interface YouTubeVideoFormatInterface {
+    getInstance(): videoFormat;
+
     hasVideo(): boolean;
 
     hasAudio(): boolean;
@@ -19,6 +21,8 @@ export interface YouTubeVideoFormatInterface {
     isQuality(quality: string): boolean;
 
     isQualityLabel(qualityLabel: string): boolean;
+
+    isMimeType(mimeType: string): boolean;
 
     isUrlOk(): Promise<boolean>;
 
@@ -42,6 +46,14 @@ export class YouTubeVideoFormat implements YouTubeVideoFormatInterface {
 
     constructor(videoFormatInstance: videoFormat) {
         this.videoFormat = videoFormatInstance;
+    }
+
+    getInstance(): videoFormat {
+        return this.videoFormat;
+    }
+
+    isMimeType(mimeType: string): boolean {
+        return this.hasVideo() && Boolean(this.videoFormat.mimeType?.startsWith(mimeType));
     }
 
     hasVideo(): boolean {
@@ -130,6 +142,8 @@ export interface YouTubeVideoFormatCheckerInterface {
 
     isAudioCodec(codec: string): YouTubeVideoFormatCheckerInterface;
 
+    isMimeType(mimeType: string): YouTubeVideoFormatCheckerInterface;
+
     isAudioBitrate(audioBitrate: number): YouTubeVideoFormatCheckerInterface
 
     isUrlOk(): YouTubeVideoFormatCheckerInterface;
@@ -213,6 +227,14 @@ export class YouTubeVideoFormatChecker implements YouTubeVideoFormatCheckerInter
     isAudioCodec(codec: string): YouTubeVideoFormatCheckerInterface {
         this.setCallbacksBuffer(
             () => Promise.resolve(this.youTubeVideoFormat.isAudioCodec(codec))
+        )
+
+        return YouTubeVideoFormatChecker.replicate(this);
+    }
+
+    isMimeType(mimeType: string): YouTubeVideoFormatCheckerInterface {
+        this.setCallbacksBuffer(
+            () => Promise.resolve(this.youTubeVideoFormat.isMimeType(mimeType))
         )
 
         return YouTubeVideoFormatChecker.replicate(this);
