@@ -80,7 +80,9 @@ export class DownloadVideoCallbackQuery implements CallbackHandlerInterface {
                 await this.videoRepository.delete(video)
             }
         }, async (queueNumber: number) => {
-            await telegramService.editMessage({ content: `Ваша позиция в очереди: ${queueNumber}` });
+            await telegramService.editMessage({ content: `Ваша позиция в очереди: ${queueNumber}`, keyboard: [new KeyboardButtonCallback({text: "Отмена", data: Buffer.from(`cancel_video:${video.id}`)})] });
+        }, async (error: any): Promise<void> => {
+            await telegramService.editMessage({ content: "Загрузка видео остановленна" });
         });
     }
 

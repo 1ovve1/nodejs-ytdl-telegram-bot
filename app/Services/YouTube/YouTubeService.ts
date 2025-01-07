@@ -1,7 +1,6 @@
 import ytdl, {Agent, Cookie, videoFormat, videoInfo} from "@distube/ytdl-core";
 import Video from "../../../models/videos";
 import VideoFormat from "../../../models/video_formats";
-import ffmpeg from "fluent-ffmpeg"
 import cookies from "./../../../cookies.json";
 import { YouTubeVideoFormat, YouTubeVideoFormatCheckerInterface, YouTubeVideoFormatInterface } from "./YouTubeVideoFormat";
 import {YouTubeVideoInfoInterface} from "./YouTubeVideoInfo";
@@ -32,47 +31,33 @@ export class YouTubeService implements YouTubeServiceInterface {
     }
 
     async getMetaDataFromVideoFormat(video: Video, videoFormatModel: VideoFormat): Promise<YouTubeVideoMetaDataInterface> {
-        return new Promise<YouTubeVideoMetaDataInterface>(async (resolve: (result: YouTubeVideoMetaDataInterface) => void, reject: (err: Error) => void): Promise<void> => {
-            try {
-                console.log(`Download video ${video.id}...`);
+        console.log(`Download video ${video.id}...`);
 
-                const chosenYouTubeVideoFormat: YouTubeVideoFormatInterface = new YouTubeVideoFormat(JSON.parse(videoFormatModel.format) as videoFormat);
+        const chosenYouTubeVideoFormat: YouTubeVideoFormatInterface = new YouTubeVideoFormat(JSON.parse(videoFormatModel.format) as videoFormat);
 
-                const videoInfo: YouTubeVideoInfoInterface = await this.getInfo(video);
-                const videoFormat: YouTubeVideoFormatInterface = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasVideo().isQualityLabel(chosenYouTubeVideoFormat.getQualityLabel()).isQuality(chosenYouTubeVideoFormat.getQuality()).isMimeType('video/mp4').isUrlOk().check());
-                const audioFormat: YouTubeVideoFormatInterface = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasAudio().isAudioCodec('mp4a').isUrlOk().check());
+        const videoInfo: YouTubeVideoInfoInterface = await this.getInfo(video);
+        const videoFormat: YouTubeVideoFormatInterface = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasVideo().isQualityLabel(chosenYouTubeVideoFormat.getQualityLabel()).isQuality(chosenYouTubeVideoFormat.getQuality()).isMimeType('video/mp4').isUrlOk().check());
+        const audioFormat: YouTubeVideoFormatInterface = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasAudio().isAudioCodec('mp4a').isUrlOk().check());
 
-                resolve({
-                    videoInfo,
-                    audioFormat,
-                    videoFormat
-                } as YouTubeVideoMetaDataInterface)
-
-            } catch (error) {
-                console.error('Error downloading audio or video:', error);
-            }
-        })
+        return {
+            videoInfo,
+            audioFormat,
+            videoFormat
+        } as YouTubeVideoMetaDataInterface;
     }
 
     async getMetaDataFromAudioFormat(video: Video, audioFormatModel: AudioFormat): Promise<YouTubeAudioMetaDataInterface> {
-        return new Promise<YouTubeAudioMetaDataInterface>(async (resolve: (result: YouTubeAudioMetaDataInterface) => void, reject: (err: Error) => void): Promise<void> => {
-            try {
-                console.log(`Download audio ${video.id}...`);
+        console.log(`Download audio ${video.id}...`);
 
-                const chosenAudioFormat: YouTubeVideoFormatInterface = new YouTubeVideoFormat(JSON.parse(audioFormatModel.format) as videoFormat);
+        const chosenAudioFormat: YouTubeVideoFormatInterface = new YouTubeVideoFormat(JSON.parse(audioFormatModel.format) as videoFormat);
 
-                const videoInfo: YouTubeVideoInfoInterface = await this.getInfo(video);
-                const audioFormat: YouTubeVideoFormatInterface = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasAudio().isAudioBitrate(chosenAudioFormat.getAudioBitrate()).isUrlOk().check());
+        const videoInfo: YouTubeVideoInfoInterface = await this.getInfo(video);
+        const audioFormat: YouTubeVideoFormatInterface = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasAudio().isAudioBitrate(chosenAudioFormat.getAudioBitrate()).isUrlOk().check());
 
-                resolve({
-                    videoInfo,
-                    audioFormat,
-                } as YouTubeAudioMetaDataInterface)
-
-            } catch (error) {
-                console.error('Error downloading audio or video:', error);
-            }
-        })
+        return {
+            videoInfo,
+            audioFormat,
+        } as YouTubeAudioMetaDataInterface;
     }
 
 

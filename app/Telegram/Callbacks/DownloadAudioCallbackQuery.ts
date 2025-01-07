@@ -32,59 +32,62 @@ export class DownloadAudioCallbackQuery implements CallbackHandlerInterface {
         this.videoQueueService.push(video);
 
         await this.videoQueueService.wait(video, async () => {
-                try {
-                    await telegramService.editMessage({ content: "Загружаю метаданные..." });
+            try {
+                await telegramService.editMessage({ content: "Загружаю метаданные..." });
 
-                    const youTubeAudioMetaData: YouTubeAudioMetaDataInterface = await this.youTubeService.getMetaDataFromAudioFormat(video, audioFormat);
+                const youTubeAudioMetaData: YouTubeAudioMetaDataInterface = await this.youTubeService.getMetaDataFromAudioFormat(video, audioFormat);
 
-                    await telegramService.editMessage({ content: "Начинаю загрузку..." });
+                await telegramService.editMessage({ content: "Начинаю загрузку..." });
 
-                    let progressValueCache: number = 0;
-                    const audioFileStream = await this.ffmpegService.downloadFromAudioFormat(
-                        youTubeAudioMetaData,
-                        async (progress, command) => {
-                            const newPercentageValue = Math.round(progress.percent ?? 0);
+                let progressValueCache: number = 0;
+                const audioFileStream = await this.ffmpegService.downloadFromAudioFormat(
+                    youTubeAudioMetaData,
+                    async (progress, command) => {
+                        const newPercentageValue = Math.round(progress.percent ?? 0);
 
-                            if (progressValueCache !== newPercentageValue) {
-                                try {
-                                    await this.videoRepository.isExists(video)
+                        if (progressValueCache !== newPercentageValue) {
+                            try {
+                                await this.videoRepository.isExists(video)
 
-                                    await telegramService.editMessage({ content: `${newPercentageValue}%...`, keyboard: [new KeyboardButtonCallback({text: "Отмена", data: Buffer.from(`cancel_video:${video.id}`)})] });
-                                    progressValueCache = newPercentageValue;
-                                } catch (_) {
-                                    command.kill("SIGTERM");
+                                await telegramService.editMessage({ content: `${newPercentageValue}%...`, keyboard: [new KeyboardButtonCallback({text: "Отмена", data: Buffer.from(`cancel_video:${video.id}`)})] });
+                                progressValueCache = newPercentageValue;
+                            } catch (_) {
+                                command.kill("SIGTERM");
 
-                                    throw new Error('SIGTERM');
-                                }
+                                throw new Error('SIGTERM');
                             }
                         }
-                    )
-
-                    youTubeAudioMetaData.audioFormat
-
-                    await telegramService.editMessage({ content: `Выгрузка в телеграмм...` });
-
-                    const file = await telegramService.uploadFile(youTubeAudioMetaData.videoInfo.getTitle(), audioFileStream);
-
-                    await telegramService.sendMessage({content: youTubeAudioMetaData.videoInfo.getTitle(), file})
-
-                    this.fileSystemService.delete(audioFileStream);
-
-                    await telegramService.deleteMessage({});
-                } catch (err) {
-                    console.log(err);
-
-                    if (err instanceof Error && err.message === "SIGTERM") {
-                        await telegramService.editMessage({ content: "Загрузка аудио остановленна" });
-                    } else {
-                        await telegramService.editMessage({ content: "Произошла ошибка :(" });
                     }
-                } finally {
-                    await this.videoRepository.delete(video)
+                )
+
+                youTubeAudioMetaData.audioFormat
+
+                await telegramService.editMessage({ content: `Выгрузка в телеграмм...` });
+
+                const file = await telegramService.uploadFile(youTubeAudioMetaData.videoInfo.getTitle(), audioFileStream);
+
+                await telegramService.sendMessage({content: youTubeAudioMetaData.videoInfo.getTitle(), file})
+
+                this.fileSystemService.delete(audioFileStream);
+
+                await telegramService.deleteMessage({});
+            } catch (err) {
+                console.log(err);
+
+                if (err instanceof Error && err.message === "SIGTERM") {
+                    await telegramService.editMessage({ content: "Загрузка аудио остановленна" });
+                } else {
+                    await telegramService.editMessage({ content: "Произошла ошибка :(" });
                 }
+            } finally {
+                await this.videoRepository.delete(video)
+            }
         }, async (queueNumber: number) => {
-            await telegramService.editMessage({ content: `Ваша позиция в очереди: ${queueNumber}` });
+            await telegramService.editMessage({ content: `Ваша позиция в очереди: ${queueNumber}`, keyboard: [new KeyboardButtonCallback({text: "Отмена", data: Buffer.from(`cancel_video:${video.id}`)})] });
+        }, async (error: any): Promise<void> => {
+            await telegramService.editMessage({ content: "Загрузка аудио остановленна" });
         });
+
     }
 
     match(data: Buffer): boolean {

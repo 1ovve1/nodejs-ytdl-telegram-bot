@@ -7,22 +7,24 @@ export interface VideoQueueServiceInterface {
      */
     shift(): Video;
 
+    dropByKey(videoId: number): void;
+
     /**
      * @throws Error - object was not founded
      */
-    key(video: Video): number;
+    key(video: Video): number | undefined;
 
     wait(video: Video,
          callback: () => Promise<void>,
-         queueMovedCallback: (queueNumber: number) => Promise<void>): Promise<void>;
+         queueMovedCallback: (queueNumber: number) => Promise<void>,
+         onError: (error: any) => Promise<void>): Promise<void>;
 }
 
 export class VideoQueueService implements VideoQueueServiceInterface {
     readonly QUEUE_WAITING = 1000;
-
     private queue: Video[] = [];
-    private static instance: VideoQueueService | null = null;
 
+    private static instance: VideoQueueService | null = null;
     static make(queue: Video[] = []): VideoQueueService
     {
         return this.instance ?? (this.instance = new VideoQueueService(queue));
@@ -46,55 +48,58 @@ export class VideoQueueService implements VideoQueueServiceInterface {
         return value;
     }
 
-    key(object: Video): number {
+    key(object: Video): number | undefined {
         for (const [index, item] of this.queue.entries()) {
             if (object.id === item.id) {
                 return index;
             }
         }
 
-        throw new Error('object not found');
+        return undefined;
+    }
+
+    dropByKey(videoId: number): void {
+        this.queue = this.queue.filter(video => video.id !== video.id);
     }
 
     async wait(video: Video,
                callback: () => Promise<void>,
-               queueMovedCallback: (queueNumber: number) => Promise<void>): Promise<void> {
-        try {
-            const queueNumber = this.key(video);
+               queueMovedCallback: (queueNumber: number) => Promise<void>,
+               onError: (error: any) => Promise<void>): Promise<void> {
+        const queueNumber = this.key(video);
 
-            if (queueNumber !== 0) {
-                if (queueMovedCallback !== undefined) {
-                    await queueMovedCallback(queueNumber);
-                }
-
-                setTimeout(
-                    () => this.waitVideo(queueNumber, video, callback, queueMovedCallback),
-                    this.QUEUE_WAITING
-                )
-            } else if (queueNumber === 0) {
-                await callback();
-
-                this.shift();
+        if (queueNumber) {
+            if (queueMovedCallback !== undefined) {
+                await queueMovedCallback(queueNumber);
             }
-        } catch (err) {
-            return Promise.reject(err);
+
+            setTimeout(
+                () => this.waitVideo(queueNumber, video, callback, queueMovedCallback, onError),
+                this.QUEUE_WAITING
+            )
+        } else if (queueNumber === 0) {
+            await callback();
+
+            this.shift();
+        } else {
+            await onError(new Error("Queue timed out"));
         }
     }
 
     private async waitVideo(queueNumber: number,
                            video: Video,
                            callback: () => Promise<void>,
-                           queueMovedCallback: (queueNumber: number) => Promise<void>): Promise<void> {
+                           queueMovedCallback: (queueNumber: number) => Promise<void>,
+                           onError: (error: any) => Promise<void>): Promise<void> {
         const newQueueNumber = this.key(video);
 
         if (newQueueNumber === queueNumber) {
             setTimeout(
-                () => this.waitVideo(newQueueNumber, video, callback, queueMovedCallback),
+                () => this.waitVideo(newQueueNumber, video, callback, queueMovedCallback, onError),
                 this.QUEUE_WAITING
             )
         } else {
-            await this.wait(video, callback, queueMovedCallback);
-
+            await this.wait(video, callback, queueMovedCallback, onError);
         }
     }
 }
