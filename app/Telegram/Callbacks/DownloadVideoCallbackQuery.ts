@@ -10,6 +10,7 @@ import {TelegramDataRepositoryInterface} from "../../Repositories/TelegramDataRe
 import {FfmpegCommand} from "fluent-ffmpeg";
 import {Api} from "telegram";
 import KeyboardButtonCallback = Api.KeyboardButtonCallback;
+import ytdl from "@distube/ytdl-core";
 
 export class DownloadVideoCallbackQuery implements CallbackHandlerInterface {
     readonly youTubeService: YouTubeServiceInterface = new YouTubeService();
@@ -24,6 +25,7 @@ export class DownloadVideoCallbackQuery implements CallbackHandlerInterface {
         const videoFormatId = Number(telegramData.getMessageContent().replace("video_format:", ""));
 
         const videoFormat = await this.videoFormatRepository.findById(videoFormatId);
+        const videoFormatInstance: ytdl.videoFormat = JSON.parse(videoFormat.format);
         const video = await this.videoFormatRepository.video(videoFormat);
 
         this.videoQueueService.push(video);
@@ -61,7 +63,7 @@ export class DownloadVideoCallbackQuery implements CallbackHandlerInterface {
 
                 const file = await telegramService.uploadFile(youTubeMetaData.videoInfo.getTitle(), videoFileStream);
 
-                await telegramService.sendVideo({content: youTubeMetaData.videoInfo.getTitle(), file, videoFormat: youTubeMetaData.videoFormat.getInstance()})
+                await telegramService.sendVideo({content: youTubeMetaData.videoInfo.getTitle(), file, videoFormat: videoFormatInstance})
 
                 this.fileSystemService.delete(videoFileStream);
 

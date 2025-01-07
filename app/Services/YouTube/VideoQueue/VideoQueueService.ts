@@ -42,7 +42,7 @@ export class VideoQueueService implements VideoQueueServiceInterface {
         const value = this.queue.shift();
 
         if (value === undefined) {
-            throw new Error('Queeu is empty')
+            throw new Error('Queue is empty')
         }
 
         return value;
@@ -80,7 +80,9 @@ export class VideoQueueService implements VideoQueueServiceInterface {
         } else if (queueNumber === 0) {
             await callback();
 
-            this.shift();
+            try {
+                this.shift();
+            } catch (_) {}
         } else {
             await onError(new Error("Queue timed out"));
         }
