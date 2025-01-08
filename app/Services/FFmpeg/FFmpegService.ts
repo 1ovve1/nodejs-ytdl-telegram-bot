@@ -1,8 +1,8 @@
 import {ReadStream} from "node:fs";
 import { throttle } from "throttle-debounce";
 import ffmpeg, {FfmpegCommand} from "fluent-ffmpeg";
-import {YouTubeVideoFormatInterface} from "../YouTube/YouTubeVideoFormat";
 import * as fs from "node:fs";
+import cookies from "./../../../cookies.json";
 import {YouTubeAudioMetaDataInterface, YouTubeVideoMetaDataInterface} from "../YouTube/YouTubeService";
 
 export interface FFmpegServiceInterface {
@@ -17,6 +17,13 @@ export interface FFmpegServiceInterface {
 
 export class FFmpegService implements FFmpegServiceInterface {
     readonly destinationPath: string = "build/storage";
+    readonly cookies: string = '';
+
+    constructor() {
+        this.cookies = cookies
+            .map((cookie) => `${cookie.name}=${cookie.value}`)
+            .join("; ");
+    }
 
     async combineAudioAndVideoFromYouTubeStream(
         videoMetaData: YouTubeVideoMetaDataInterface,
@@ -35,7 +42,9 @@ export class FFmpegService implements FFmpegServiceInterface {
 
             const command = ffmpeg()
                 .input(videoMetaData.videoFormat.getUrl())
+                .addInputOption('-cookies', this.cookies)
                 .input(videoMetaData.audioFormat.getUrl())
+                .addInputOption('-cookies', this.cookies)
                 .outputOptions('-c:v copy')
                 .outputOptions('-c:a aac')
                 .output(resultOutPath)
@@ -73,6 +82,7 @@ export class FFmpegService implements FFmpegServiceInterface {
             })
 
             const command = ffmpeg(audioMetaData.audioFormat.getUrl())
+                .addInputOption('-cookies', this.cookies)
                 .audioCodec('libmp3lame')   // Set the audio codec to MP3 (libmp3lame)
                 .audioChannels(2)        // Set stereo audio (2 channels)
                 .audioFrequency(44100)   // Set audio frequency (44.1 kHz)

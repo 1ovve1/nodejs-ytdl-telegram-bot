@@ -21,7 +21,8 @@ export interface VideoQueueServiceInterface {
 }
 
 export class VideoQueueService implements VideoQueueServiceInterface {
-    readonly QUEUE_WAITING = 1000;
+    readonly QUEUE_WAITING = 2000;
+    readonly concurrency: number = 3;
     private queue: Video[] = [];
 
     private static instance: VideoQueueService | null = null;
@@ -68,23 +69,27 @@ export class VideoQueueService implements VideoQueueServiceInterface {
                onError: (error: any) => Promise<void>): Promise<void> {
         const queueNumber = this.key(video);
 
-        if (queueNumber) {
+        if (queueNumber === undefined) {
+            await onError(new Error('Queue is empty'));
+
+            return;
+        }
+
+        if (queueNumber >= this.concurrency) {
             if (queueMovedCallback !== undefined) {
-                await queueMovedCallback(queueNumber);
+                await queueMovedCallback(queueNumber - this.queue.length);
             }
 
             setTimeout(
                 () => this.waitVideo(queueNumber, video, callback, queueMovedCallback, onError),
                 this.QUEUE_WAITING
             )
-        } else if (queueNumber === 0) {
+        } else if (queueNumber >= 0) {
             await callback();
 
             try {
                 this.shift();
             } catch (_) {}
-        } else {
-            await onError(new Error("Queue timed out"));
         }
     }
 
