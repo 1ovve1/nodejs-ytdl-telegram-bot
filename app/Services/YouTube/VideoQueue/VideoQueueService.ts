@@ -77,7 +77,7 @@ export class VideoQueueService implements VideoQueueServiceInterface {
 
         if (queueNumber >= this.concurrency) {
             if (queueMovedCallback !== undefined) {
-                await queueMovedCallback(queueNumber - this.queue.length);
+                await queueMovedCallback(queueNumber - this.concurrency + 1);
             }
 
             setTimeout(
