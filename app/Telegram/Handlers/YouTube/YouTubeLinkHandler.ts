@@ -12,6 +12,8 @@ import {VideoFormatRepository, VideoFormatRepositoryInterface} from "../../../Re
 import {AudioFormatRepository, AudioFormatRepositoryInterface} from "../../../Repositories/AudioFormatRepository";
 import {TelegramServiceInterface} from "../../../Services/Telegram/TelegramService";
 import {TelegramDataRepositoryInterface} from "../../../Repositories/TelegramDataRepository";
+import {ChoseQualityCallbackKeyboard} from "../../Callbacks/Keyboards/ChoseQualityCallbackKeyboard";
+import AudioFormat from "../../../../models/audio_formats";
 
 export class YouTubeLinkHandler implements MessageHandlerInterface {
     readonly YOUTUBE_LINK_REG: RegExp = /^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube(?:-nocookie)?\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|live\/|v\/)?)([\w\-]+)(\S+)?$/g;
@@ -32,25 +34,7 @@ export class YouTubeLinkHandler implements MessageHandlerInterface {
         const videoFormats = await this.videoFormatRepository.createMany(video, formats);
         const audioFormat = await this.audioFormatRepository.create(video, formats);
 
-        const rows = videoFormats.map(format => new KeyboardButtonRow({
-            buttons: [
-                new KeyboardButtonCallback({
-                    text: format.label,
-                    data: Buffer.from(`video_format:${format.id}`),
-                })
-            ]
-        }));
-
-        rows.push(new KeyboardButtonRow({
-            buttons: [
-                new KeyboardButtonCallback({
-                    text: audioFormat.label,
-                    data: Buffer.from(`audio_format:${audioFormat.id}`)
-                })
-            ]
-        }));
-
-        await telegramService.replyTo({content: "Выберите качество:", keyboard: new ReplyInlineMarkup({rows})})
+        await telegramService.replyTo({content: "Выберите качество:", keyboard: new ChoseQualityCallbackKeyboard([...videoFormats, audioFormat])})
     }
 
     match(messageData: string): boolean {

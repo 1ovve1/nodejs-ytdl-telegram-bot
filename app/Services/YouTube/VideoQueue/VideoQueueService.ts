@@ -14,10 +14,15 @@ export interface VideoQueueServiceInterface {
      */
     key(video: Video): number | undefined;
 
-    wait(video: Video,
-         callback: () => Promise<void>,
-         queueMovedCallback: (queueNumber: number) => Promise<void>,
-         onError: (error: any) => Promise<void>): Promise<void>;
+    onRun(video: Video,
+          callback: () => Promise<void>,
+          queueMovedCallback: (queueNumber: number) => Promise<void>,
+          onError: (error: any) => Promise<void>): Promise<void>;
+
+    pushAndRun(video: Video,
+               callback: () => Promise<void>,
+               queueMovedCallback: (queueNumber: number) => Promise<void>,
+               onError: (error: any) => Promise<void>): Promise<void>;
 }
 
 export class VideoQueueService implements VideoQueueServiceInterface {
@@ -60,13 +65,19 @@ export class VideoQueueService implements VideoQueueServiceInterface {
     }
 
     dropByKey(videoId: number): void {
-        this.queue = this.queue.filter(video => video.id !== video.id);
+        this.queue = this.queue.filter(video => video.id !== videoId);
     }
 
-    async wait(video: Video,
-               callback: () => Promise<void>,
-               queueMovedCallback: (queueNumber: number) => Promise<void>,
-               onError: (error: any) => Promise<void>): Promise<void> {
+    pushAndRun(video: Video, callback: () => Promise<void>, queueMovedCallback: (queueNumber: number) => Promise<void>, onError: (error: any) => Promise<void>): Promise<void> {
+        this.push(video);
+
+        return this.onRun(video, callback, queueMovedCallback, onError);
+    }
+
+    async onRun(video: Video,
+                callback: () => Promise<void>,
+                queueMovedCallback: (queueNumber: number) => Promise<void>,
+                onError: (error: any) => Promise<void>): Promise<void> {
         const queueNumber = this.key(video);
 
         if (queueNumber === undefined) {
@@ -106,7 +117,7 @@ export class VideoQueueService implements VideoQueueServiceInterface {
                 this.QUEUE_WAITING
             )
         } else {
-            await this.wait(video, callback, queueMovedCallback, onError);
+            await this.onRun(video, callback, queueMovedCallback, onError);
         }
     }
 }

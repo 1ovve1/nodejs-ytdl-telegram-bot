@@ -1,4 +1,4 @@
-import {CallbackHandlerInterface} from "./CallbackHandler";
+import {AbstractCallbackHandler, CallbackHandlerInterface} from "./CallbackHandler";
 import {
     YouTubeService,
     YouTubeServiceInterface,
@@ -13,8 +13,12 @@ import {TelegramDataRepositoryInterface} from "../../Repositories/TelegramDataRe
 import {VideoRepository, VideoRepositoryInterface} from "../../Repositories/VideoRepository";
 import {Api} from "telegram";
 import KeyboardButtonCallback = Api.KeyboardButtonCallback;
+import {ButtonLike} from "telegram/define";
+import {CancelProcessCallbackKeyboard} from "./Keyboards/CancelProcessCallbackKeyboard";
 
-export class DownloadAudioCallbackQuery implements CallbackHandlerInterface {
+export class DownloadAudioCallbackQuery extends AbstractCallbackHandler {
+    readonly prefix: string = "audio_format:";
+
     readonly youTubeService: YouTubeServiceInterface = new YouTubeService();
     readonly videoQueueService: VideoQueueServiceInterface = VideoQueueService.make();
     readonly ffmpegService: FFmpegServiceInterface = new FFmpegService();
@@ -24,14 +28,12 @@ export class DownloadAudioCallbackQuery implements CallbackHandlerInterface {
     readonly videoRepository: VideoRepositoryInterface = new VideoRepository();
 
     async handle(telegramService: TelegramServiceInterface, telegramData: TelegramDataRepositoryInterface): Promise<void> {
-        const audioFormatId = Number(telegramData.getMessageContent().replace("audio_format:", ""));
+        const audioFormatId = Number(this.getDataFromRaw(telegramData.getMessageContent()));
 
         const audioFormat = await this.audioFormatRepository.findById(audioFormatId);
         const video = await this.audioFormatRepository.video(audioFormat);
 
-        this.videoQueueService.push(video);
-
-        await this.videoQueueService.wait(video, async () => {
+        await this.videoQueueService.pushAndRun(video, async () => {
             try {
                 await telegramService.editMessage({ content: "Загружаю метаданные..." });
 
@@ -39,23 +41,17 @@ export class DownloadAudioCallbackQuery implements CallbackHandlerInterface {
 
                 await telegramService.editMessage({ content: "Начинаю загрузку..." });
 
-                let progressValueCache: number = 0;
                 const audioFileStream = await this.ffmpegService.downloadFromAudioFormat(
                     youTubeAudioMetaData,
                     async (progress, command) => {
-                        const newPercentageValue = Math.round(progress.percent ?? 0);
+                        try {
+                            await this.videoRepository.isExists(video)
 
-                        if (progressValueCache !== newPercentageValue) {
-                            try {
-                                await this.videoRepository.isExists(video)
+                            await telegramService.editMessage({ content: `${Math.round(progress.percent ?? 0)}%...`, keyboard: new CancelProcessCallbackKeyboard(audioFormat) });
+                        } catch (_) {
+                            command.kill("SIGTERM");
 
-                                await telegramService.editMessage({ content: `${newPercentageValue}%...`, keyboard: [new KeyboardButtonCallback({text: "Отмена", data: Buffer.from(`cancel_video:${video.id}`)})] });
-                                progressValueCache = newPercentageValue;
-                            } catch (_) {
-                                command.kill("SIGTERM");
-
-                                throw new Error('SIGTERM');
-                            }
+                            throw new Error('SIGTERM');
                         }
                     }
                 )
@@ -83,14 +79,10 @@ export class DownloadAudioCallbackQuery implements CallbackHandlerInterface {
                 await this.videoRepository.delete(video)
             }
         }, async (queueNumber: number) => {
-            await telegramService.editMessage({ content: `Ваша позиция в очереди: ${queueNumber}`, keyboard: [new KeyboardButtonCallback({text: "Отмена", data: Buffer.from(`cancel_video:${video.id}`)})] });
+            await telegramService.editMessage({ content: `Ваша позиция в очереди: ${queueNumber}`, keyboard: new CancelProcessCallbackKeyboard(audioFormat) });
         }, async (error: any): Promise<void> => {
             await telegramService.editMessage({ content: "Загрузка аудио остановленна" });
         });
 
-    }
-
-    match(data: Buffer): boolean {
-        return data.toString().includes("audio_format:");
     }
 }

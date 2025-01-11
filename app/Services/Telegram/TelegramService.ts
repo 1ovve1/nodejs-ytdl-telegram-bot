@@ -7,6 +7,7 @@ import {TelegramDataRepository, TelegramDataRepositoryInterface} from "../../Rep
 import {FileLike, MarkupLike} from "telegram/define";
 import DocumentAttributeVideo = Api.DocumentAttributeVideo;
 import {videoFormat} from "@distube/ytdl-core";
+import {CallbackKeyboardInterface} from "../../Telegram/Callbacks/Keyboards/CallbackKeyboard";
 
 
 export interface TelegramServiceInterface {
@@ -66,7 +67,7 @@ export class TelegramService implements TelegramServiceInterface {
             ...params,
             replyTo: params.messageId,
             message: params.content,
-            buttons: params.keyboard
+            buttons: params.keyboard?.make()
         });
     }
 
@@ -76,7 +77,7 @@ export class TelegramService implements TelegramServiceInterface {
         return await this.client.sendMessage(params.chatId, {
             ...params,
             message: params.content,
-            buttons: params.keyboard,
+            buttons: params.keyboard?.make(),
         });
     }
 
@@ -90,7 +91,7 @@ export class TelegramService implements TelegramServiceInterface {
                 ...params,
                 text: params.content,
                 message: params.messageId,
-                buttons: params.keyboard,
+                buttons: params.keyboard?.make(),
             }
         );
     }
@@ -114,7 +115,7 @@ export class TelegramService implements TelegramServiceInterface {
             file: params.file,
             attributes: [
                 new DocumentAttributeVideo({
-                    duration: Number(params.videoFormat.approxDurationMs),
+                    duration: Number(params.videoFormat.approxDurationMs) / 1000,
                     w: Number(params.videoFormat.width),
                     h: Number(params.videoFormat.height),
                     supportsStreaming: true,
@@ -132,7 +133,7 @@ interface ReplyToParams extends SendMessageParams {
 interface SendMessageParams {
     content: string,
     chatId?: Api.TypeEntityLike,
-    keyboard?: MarkupLike,
+    keyboard?: CallbackKeyboardInterface,
     file?: FileLike | FileLike[],
 }
 
@@ -140,7 +141,7 @@ interface EditMessageParams {
     content: string,
     chatId?: Api.TypeEntityLike,
     messageId?: number,
-    keyboard?: MarkupLike,
+    keyboard?: CallbackKeyboardInterface,
 }
 
 interface DeleteMessageParams {

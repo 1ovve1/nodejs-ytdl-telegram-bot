@@ -1,4 +1,4 @@
-import {CallbackHandlerInterface} from "./CallbackHandler";
+import {AbstractCallbackHandler, CallbackHandlerInterface} from "./CallbackHandler";
 import {VideoFormatRepository, VideoFormatRepositoryInterface} from "../../Repositories/VideoFormatRepository";
 import {YouTubeVideoMetaDataInterface, YouTubeService, YouTubeServiceInterface } from "../../Services/YouTube/YouTubeService";
 import {FFmpegService, FFmpegServiceInterface} from "../../Services/FFmpeg/FFmpegService";
@@ -11,8 +11,11 @@ import {FfmpegCommand} from "fluent-ffmpeg";
 import {Api} from "telegram";
 import KeyboardButtonCallback = Api.KeyboardButtonCallback;
 import ytdl from "@distube/ytdl-core";
+import {CancelProcessCallbackKeyboard} from "./Keyboards/CancelProcessCallbackKeyboard";
 
-export class DownloadVideoCallbackQuery implements CallbackHandlerInterface {
+export class DownloadVideoCallbackQuery extends AbstractCallbackHandler{
+    readonly prefix: string = "video_format:";
+
     readonly youTubeService: YouTubeServiceInterface = new YouTubeService();
     readonly videoQueueService: VideoQueueServiceInterface = VideoQueueService.make();
     readonly ffmpegService: FFmpegServiceInterface = new FFmpegService();
@@ -22,15 +25,13 @@ export class DownloadVideoCallbackQuery implements CallbackHandlerInterface {
     readonly videoRepository: VideoRepositoryInterface = new VideoRepository();
 
     async handle(telegramService: TelegramServiceInterface, telegramData: TelegramDataRepositoryInterface): Promise<void> {
-        const videoFormatId = Number(telegramData.getMessageContent().replace("video_format:", ""));
+        const videoFormatId = Number(this.getDataFromRaw(telegramData.getMessageContent()));
 
         const videoFormat = await this.videoFormatRepository.findById(videoFormatId);
-        const videoFormatInstance: ytdl.videoFormat = JSON.parse(videoFormat.format);
+        const chosenVideoFormat: ytdl.videoFormat = JSON.parse(videoFormat.format);
         const video = await this.videoFormatRepository.video(videoFormat);
 
-        this.videoQueueService.push(video);
-
-        await this.videoQueueService.wait(video, async () => {
+        await this.videoQueueService.pushAndRun(video, async () => {
             try {
                 await telegramService.editMessage({ content: "Загружаю метаданные..." });
 
@@ -38,32 +39,26 @@ export class DownloadVideoCallbackQuery implements CallbackHandlerInterface {
 
                 await telegramService.editMessage({ content: "Начинаю загрузку..." });
 
-                let progressValueCache: number = 0;
                 const videoFileStream = await this.ffmpegService.combineAudioAndVideoFromYouTubeStream(
                     youTubeMetaData,
                     async (progress, command: FfmpegCommand) => {
-                        const newPercentageValue = Math.round(progress.percent ?? 0);
+                        try {
+                            await this.videoRepository.isExists(video)
 
-                        if (progressValueCache !== newPercentageValue) {
-                            try {
-                                await this.videoRepository.isExists(video)
+                            await telegramService.editMessage({ content: `${ Math.round(progress.percent ?? 0)}%...`, keyboard: new CancelProcessCallbackKeyboard(videoFormat) });
+                        } catch (_) {
+                            command.kill("SIGTERM");
 
-                                await telegramService.editMessage({ content: `${newPercentageValue}%...`, keyboard: [new KeyboardButtonCallback({text: "Отмена", data: Buffer.from(`cancel_video:${video.id}`)})] });
-                                progressValueCache = newPercentageValue;
-                            } catch (_) {
-                                command.kill("SIGTERM");
-
-                                throw new Error('SIGTERM');
-                            }
+                            throw new Error('SIGTERM');
                         }
                     }
-                )
+                );
 
                 await telegramService.editMessage({ content: `Выгрузка в телеграмм...` });
 
                 const file = await telegramService.uploadFile(youTubeMetaData.videoInfo.getTitle(), videoFileStream);
 
-                await telegramService.sendVideo({content: youTubeMetaData.videoInfo.getTitle(), file, videoFormat: videoFormatInstance})
+                await telegramService.sendVideo({content: youTubeMetaData.videoInfo.getTitle(), file, videoFormat: chosenVideoFormat})
 
                 this.fileSystemService.delete(videoFileStream);
 
@@ -82,13 +77,9 @@ export class DownloadVideoCallbackQuery implements CallbackHandlerInterface {
                 await this.videoRepository.delete(video)
             }
         }, async (queueNumber: number) => {
-            await telegramService.editMessage({ content: `Ваша позиция в очереди: ${queueNumber}`, keyboard: [new KeyboardButtonCallback({text: "Отмена", data: Buffer.from(`cancel_video:${video.id}`)})] });
-        }, async (error: any): Promise<void> => {
+            await telegramService.editMessage({ content: `Ваша позиция в очереди: ${queueNumber}`, keyboard: new CancelProcessCallbackKeyboard(videoFormat) });
+        }, async (_: any): Promise<void> => {
             await telegramService.editMessage({ content: "Загрузка видео остановленна" });
         });
-    }
-
-    match(data: Buffer): boolean {
-        return data.toString().includes("video_format:");
     }
 }

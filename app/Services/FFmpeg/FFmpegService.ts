@@ -16,6 +16,7 @@ export interface FFmpegServiceInterface {
 }
 
 export class FFmpegService implements FFmpegServiceInterface {
+    readonly delayTime: number = 3000;
     readonly destinationPath: string = "build/storage";
     readonly cookies: string = '';
 
@@ -33,13 +34,14 @@ export class FFmpegService implements FFmpegServiceInterface {
         const resultOutPath: string = `${this.destinationPath}/result_${Date.now().toString()}.mp4`;
 
         return new Promise<ReadStream>((resolve, reject) => {
-            const onProgressThrottle = throttle(2000, (progress: FFmpegProgressEventData, command: FfmpegCommand) => {
+            const onProgressThrottle = throttle(this.delayTime, (progress: FFmpegProgressEventData, command: FfmpegCommand) => {
                 onProgress(progress, command).catch((err: Error) => {
                     reject(err);
                     fs.unlink(resultOutPath, () => {});
                 });
             })
 
+            let oldProgressValue: number | undefined = undefined;
             const command = ffmpeg()
                 .input(videoMetaData.videoFormat.getUrl())
                 .addInputOption('-cookies', this.cookies)
@@ -50,7 +52,11 @@ export class FFmpegService implements FFmpegServiceInterface {
                 .output(resultOutPath)
                 .outputFormat('mp4')
                 .on('progress', (progress: FFmpegProgressEventData) => {
-                    onProgressThrottle(progress, command);
+                    if (oldProgressValue !== progress.percent) {
+                        onProgressThrottle(progress, command);
+
+                        oldProgressValue = progress.percent;
+                    }
                 })
                 .on('end', () => {
                     onProgressThrottle.cancel();
@@ -74,13 +80,14 @@ export class FFmpegService implements FFmpegServiceInterface {
         const resultOutPath: string = `${this.destinationPath}/${audioMetaData.videoInfo.getTitle()}.mp3`;
 
         return new Promise<ReadStream>((resolve, reject) => {
-            const onProgressThrottle = throttle(2000, (progress: FFmpegProgressEventData, command: FfmpegCommand) => {
+            const onProgressThrottle = throttle(this.delayTime, (progress: FFmpegProgressEventData, command: FfmpegCommand) => {
                 onProgress(progress, command).catch((err) => {
                     reject(err);
                     fs.unlink(resultOutPath, () => {});
                 });
             })
 
+            let oldProgressValue: number | undefined = undefined;
             const command = ffmpeg(audioMetaData.audioFormat.getUrl())
                 .addInputOption('-cookies', this.cookies)
                 .audioCodec('libmp3lame')   // Set the audio codec to MP3 (libmp3lame)
@@ -90,7 +97,11 @@ export class FFmpegService implements FFmpegServiceInterface {
                 .output(resultOutPath)
                 .format('mp3')           // Set output format to WAV
                 .on('progress', (progress: FFmpegProgressEventData) => {
-                    onProgressThrottle(progress, command);
+                    if (oldProgressValue !== progress.percent) {
+                        onProgressThrottle(progress, command);
+
+                        oldProgressValue = progress.percent;
+                    }
                 })
                 .on('end', () => {
                     onProgressThrottle.cancel();
