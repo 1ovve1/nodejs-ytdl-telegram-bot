@@ -7,6 +7,7 @@ import {DownloadVideoCallbackQuery} from "./app/Telegram/Callbacks/DownloadVideo
 import {DownloadAudioCallbackQuery} from "./app/Telegram/Callbacks/DownloadAudioCallbackQuery";
 import {CancelDownloadProcessCallback} from "./app/Telegram/Callbacks/CancelDownloadProcessCallback";
 import {RefreshQueuePositionsCallback} from "./app/Telegram/Callbacks/RefreshQueuePositionsCallback";
+import {QueueCommand} from "./app/Telegram/Commands/QueueCommand";
 
 
 const app = new App(
@@ -14,7 +15,8 @@ const app = new App(
     Number(environment?.BOT_API_ID),
     String(environment?.BOT_API_HASH),
 ).setCommands([
-    new StartCommand()
+    new StartCommand(),
+    new QueueCommand(),
 ]).setHandlers([
     new DatabaseHandler(),
     new YouTubeLinkHandler()
