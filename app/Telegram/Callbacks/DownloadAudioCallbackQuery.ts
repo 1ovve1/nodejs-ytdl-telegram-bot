@@ -47,7 +47,7 @@ export class DownloadAudioCallbackQuery extends AbstractCallbackHandler {
                         try {
                             await this.videoRepository.isExists(video)
 
-                            await telegramService.editMessage({ content: `${Math.round(progress.percent ?? 0)}%...`, keyboard: new CancelProcessCallbackKeyboard(audioFormat) });
+                            await telegramService.editMessage({ content: `${Math.round(progress.percent ?? 0)}%...`, keyboard: new CancelProcessCallbackKeyboard(video) });
                         } catch (_) {
                             command.kill("SIGTERM");
 
@@ -79,7 +79,7 @@ export class DownloadAudioCallbackQuery extends AbstractCallbackHandler {
                 await this.videoRepository.delete(video)
             }
         }, async (queueNumber: number) => {
-            await telegramService.editMessage({ content: `Ваша позиция в очереди: ${queueNumber}`, keyboard: new CancelProcessCallbackKeyboard(audioFormat) });
+            await telegramService.editMessage({ content: `Ваша позиция в очереди: ${queueNumber}`, keyboard: new CancelProcessCallbackKeyboard(video) });
         }, async (error: any): Promise<void> => {
             await telegramService.editMessage({ content: "Загрузка аудио остановленна" });
         });

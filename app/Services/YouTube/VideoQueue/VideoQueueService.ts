@@ -14,6 +14,8 @@ export interface VideoQueueServiceInterface {
      */
     key(video: Video): number | undefined;
 
+    length(): number;
+
     onRun(video: Video,
           callback: () => Promise<void>,
           queueMovedCallback: (queueNumber: number) => Promise<void>,
@@ -62,6 +64,10 @@ export class VideoQueueService implements VideoQueueServiceInterface {
         }
 
         return undefined;
+    }
+
+    length(): number {
+        return this.queue.length;
     }
 
     dropByKey(videoId: number): void {

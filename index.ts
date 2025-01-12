@@ -6,6 +6,7 @@ import {YouTubeLinkHandler} from "./app/Telegram/Handlers/YouTube/YouTubeLinkHan
 import {DownloadVideoCallbackQuery} from "./app/Telegram/Callbacks/DownloadVideoCallbackQuery";
 import {DownloadAudioCallbackQuery} from "./app/Telegram/Callbacks/DownloadAudioCallbackQuery";
 import {CancelDownloadProcessCallback} from "./app/Telegram/Callbacks/CancelDownloadProcessCallback";
+import {RefreshQueuePositionsCallback} from "./app/Telegram/Callbacks/RefreshQueuePositionsCallback";
 
 
 const app = new App(
@@ -20,7 +21,8 @@ const app = new App(
 ]).setCallbackHandlers([
     new DownloadVideoCallbackQuery(),
     new DownloadAudioCallbackQuery(),
-    new CancelDownloadProcessCallback()
+    new CancelDownloadProcessCallback(),
+    new RefreshQueuePositionsCallback()
 ]);
 
 
