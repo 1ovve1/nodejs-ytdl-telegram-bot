@@ -41,7 +41,7 @@ export class FFmpegService implements FFmpegServiceInterface {
                 });
             })
 
-            let oldProgressValue: number | undefined = undefined;
+            let oldProgressValue: number = 0;
             const command = ffmpeg()
                 .input(videoMetaData.videoFormat.getUrl())
                 .addInputOption('-cookies', this.cookies)
@@ -52,6 +52,8 @@ export class FFmpegService implements FFmpegServiceInterface {
                 .output(resultOutPath)
                 .outputFormat('mp4')
                 .on('progress', (progress: FFmpegProgressEventData) => {
+                    progress.percent = Math.round(progress.percent ?? 0);
+
                     if (oldProgressValue !== progress.percent) {
                         onProgressThrottle(progress, command);
 
@@ -87,7 +89,7 @@ export class FFmpegService implements FFmpegServiceInterface {
                 });
             })
 
-            let oldProgressValue: number | undefined = undefined;
+            let oldProgressValue: number = 0;
             const command = ffmpeg(audioMetaData.audioFormat.getUrl())
                 .addInputOption('-cookies', this.cookies)
                 .audioCodec('libmp3lame')   // Set the audio codec to MP3 (libmp3lame)
@@ -97,6 +99,8 @@ export class FFmpegService implements FFmpegServiceInterface {
                 .output(resultOutPath)
                 .format('mp3')           // Set output format to WAV
                 .on('progress', (progress: FFmpegProgressEventData) => {
+                    progress.percent = Math.round(progress.percent ?? 0);
+
                     if (oldProgressValue !== progress.percent) {
                         onProgressThrottle(progress, command);
 
