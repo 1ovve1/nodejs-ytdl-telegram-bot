@@ -8,6 +8,8 @@ type CallableCheck = () => Promise<boolean>;
 export interface YouTubeVideoFormatInterface {
     getInstance(): videoFormat;
 
+    hasThumbnails(): boolean;
+
     hasVideo(): boolean;
 
     hasAudio(): boolean;
@@ -54,6 +56,10 @@ export class YouTubeVideoFormat implements YouTubeVideoFormatInterface {
 
     isMimeType(mimeType: string): boolean {
         return this.hasVideo() && Boolean(this.videoFormat.mimeType?.startsWith(mimeType));
+    }
+
+    hasThumbnails(): boolean {
+        return Boolean(this.videoFormat.approxDurationMs && this.videoFormat.width && this.videoFormat.height);
     }
 
     hasVideo(): boolean {
@@ -134,6 +140,8 @@ export interface YouTubeVideoFormatCheckerInterface {
 
     hasAudio(): YouTubeVideoFormatCheckerInterface;
 
+    hasThumbnails(): YouTubeVideoFormatCheckerInterface;
+
     isQuality(quality: string): YouTubeVideoFormatCheckerInterface;
 
     isQualityLabel(qualityLabel: string): YouTubeVideoFormatCheckerInterface;
@@ -195,6 +203,14 @@ export class YouTubeVideoFormatChecker implements YouTubeVideoFormatCheckerInter
     hasAudio(): YouTubeVideoFormatCheckerInterface {
         this.setCallbacksBuffer(
             () => Promise.resolve(this.youTubeVideoFormat.hasAudio()),
+        );
+
+        return YouTubeVideoFormatChecker.replicate(this);
+    }
+
+    hasThumbnails(): YouTubeVideoFormatCheckerInterface {
+        this.setCallbacksBuffer(
+            () => Promise.resolve(this.youTubeVideoFormat.hasThumbnails()),
         );
 
         return YouTubeVideoFormatChecker.replicate(this);

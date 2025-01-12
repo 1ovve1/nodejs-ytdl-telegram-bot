@@ -21,7 +21,7 @@ export class VideoFormatRepository implements VideoFormatRepositoryInterface {
     async createMany(video: Video, youTubeVideoFormatInterfaces: YouTubeVideoFormatInterface[]): Promise<VideoFormat[]> {
         const formats: VideoFormat[] = await VideoFormat.bulkCreate(
             Array.from(
-                youTubeVideoFormatInterfaces.filter((youTubeVideoFormat: YouTubeVideoFormatInterface) => youTubeVideoFormat.hasVideo() && youTubeVideoFormat.isMimeType("video/mp4"))
+                youTubeVideoFormatInterfaces.filter((youTubeVideoFormat: YouTubeVideoFormatInterface) => youTubeVideoFormat.hasVideo() && youTubeVideoFormat.hasThumbnails())
                     .sort((element: YouTubeVideoFormatInterface, comparable: YouTubeVideoFormatInterface) => element.getVideoBitrate() - comparable.getVideoBitrate())
                     .reduce((map: Map<string, YouTubeVideoFormatInterface>, element: YouTubeVideoFormatInterface): Map<string, YouTubeVideoFormatInterface> => map.has(element.getQualityLabel()) ? map: map.set(element.getQualityLabel(), element), new Map<string, YouTubeVideoFormatInterface>())
                     .values()
