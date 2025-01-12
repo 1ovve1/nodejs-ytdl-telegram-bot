@@ -15,6 +15,6 @@ export class QueueCommand implements CommandInterface {
     }
 
     name(): string {
-        return "start";
+        return "queue";
     }
 }
