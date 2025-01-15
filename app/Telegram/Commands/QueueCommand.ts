@@ -15,6 +15,8 @@ export class QueueCommand implements CommandInterface {
 
         const formattedDateTime = `${formattedDate} ${formattedTime}`;
 
+        await telegramService.deleteMessage({});
+
         await telegramService.sendMessage({
             content: `Текущая длина очереди: ${this.queueService.length()}\n\nПоследнее обновление: ${formattedDateTime} UTC`,
             keyboard: new RefreshQueuePositionsCallbackKeyboard()

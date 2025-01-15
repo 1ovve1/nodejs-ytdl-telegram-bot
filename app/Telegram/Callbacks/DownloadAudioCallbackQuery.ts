@@ -15,6 +15,7 @@ import {Api} from "telegram";
 import KeyboardButtonCallback = Api.KeyboardButtonCallback;
 import {ButtonLike} from "telegram/define";
 import {CancelProcessCallbackKeyboard} from "./Keyboards/CancelProcessCallbackKeyboard";
+import {RetryYouTubeDownloadCallbackKeyboard} from "./Keyboards/RetryYouTubeDownloadCallbackKeyboard";
 
 export class DownloadAudioCallbackQuery extends AbstractCallbackHandler {
     readonly prefix: string = "audio_format:";
@@ -71,17 +72,15 @@ export class DownloadAudioCallbackQuery extends AbstractCallbackHandler {
                 console.log(err);
 
                 if (err instanceof Error && err.message === "SIGTERM") {
-                    await telegramService.editMessage({ content: "Загрузка аудио остановленна" });
+                    await telegramService.editMessage({ content: "Загрузка аудио остановленна", keyboard: new RetryYouTubeDownloadCallbackKeyboard(video) });
                 } else {
-                    await telegramService.editMessage({ content: "Произошла ошибка :(" });
+                    await telegramService.editMessage({ content: "Произошла ошибка :(", keyboard: new RetryYouTubeDownloadCallbackKeyboard(video) });
                 }
-            } finally {
-                await this.videoRepository.delete(video)
             }
         }, async (queueNumber: number) => {
             await telegramService.editMessage({ content: `Ваша позиция в очереди: ${queueNumber}`, keyboard: new CancelProcessCallbackKeyboard(video) });
         }, async (error: any): Promise<void> => {
-            await telegramService.editMessage({ content: "Загрузка аудио остановленна" });
+            await telegramService.editMessage({ content: "Загрузка аудио остановленна", keyboard: new RetryYouTubeDownloadCallbackKeyboard(video) });
         });
 
     }

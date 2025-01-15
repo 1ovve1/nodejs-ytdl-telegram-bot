@@ -8,6 +8,7 @@ import {DownloadAudioCallbackQuery} from "./app/Telegram/Callbacks/DownloadAudio
 import {CancelDownloadProcessCallback} from "./app/Telegram/Callbacks/CancelDownloadProcessCallback";
 import {RefreshQueuePositionsCallback} from "./app/Telegram/Callbacks/RefreshQueuePositionsCallback";
 import {QueueCommand} from "./app/Telegram/Commands/QueueCommand";
+import {RetryYouTubeDownloadCallback} from "./app/Telegram/Callbacks/RetryYouTubeDownloadCallback";
 
 
 const app = new App(
@@ -24,7 +25,8 @@ const app = new App(
     new DownloadVideoCallbackQuery(),
     new DownloadAudioCallbackQuery(),
     new CancelDownloadProcessCallback(),
-    new RefreshQueuePositionsCallback()
+    new RefreshQueuePositionsCallback(),
+    new RetryYouTubeDownloadCallback(),
 ]);
 
 

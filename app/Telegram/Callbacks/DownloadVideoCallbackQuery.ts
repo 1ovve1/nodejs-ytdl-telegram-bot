@@ -12,6 +12,7 @@ import {Api} from "telegram";
 import KeyboardButtonCallback = Api.KeyboardButtonCallback;
 import ytdl from "@distube/ytdl-core";
 import {CancelProcessCallbackKeyboard} from "./Keyboards/CancelProcessCallbackKeyboard";
+import {RetryYouTubeDownloadCallbackKeyboard} from "./Keyboards/RetryYouTubeDownloadCallbackKeyboard";
 
 export class DownloadVideoCallbackQuery extends AbstractCallbackHandler{
     readonly prefix: string = "video_format:";
@@ -63,23 +64,19 @@ export class DownloadVideoCallbackQuery extends AbstractCallbackHandler{
                 this.fileSystemService.delete(videoFileStream);
 
                 await telegramService.deleteMessage({});
-
-
             } catch (err) {
                 console.log(err);
 
                 if (err instanceof Error && err.message === "SIGTERM") {
-                    await telegramService.editMessage({ content: "Загрузка видео остановленна" });
+                    await telegramService.editMessage({ content: "Загрузка видео остановленна", keyboard: new RetryYouTubeDownloadCallbackKeyboard(video) });
                 } else {
-                    await telegramService.editMessage({ content: "Произошла ошибка :(" });
+                    await telegramService.editMessage({ content: "Произошла ошибка :(", keyboard: new RetryYouTubeDownloadCallbackKeyboard(video) });
                 }
-            } finally {
-                await this.videoRepository.delete(video)
             }
         }, async (queueNumber: number) => {
             await telegramService.editMessage({ content: `Ваша позиция в очереди: ${queueNumber}`, keyboard: new CancelProcessCallbackKeyboard(video) });
         }, async (_: any): Promise<void> => {
-            await telegramService.editMessage({ content: "Загрузка видео остановленна" });
+            await telegramService.editMessage({ content: "Загрузка видео остановленна", keyboard: new RetryYouTubeDownloadCallbackKeyboard(video) });
         });
     }
 }

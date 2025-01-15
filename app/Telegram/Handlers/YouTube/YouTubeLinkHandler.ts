@@ -1,10 +1,5 @@
 import {MessageHandlerInterface} from "../MessageHandler";
-import {NewMessageEvent} from "telegram/events";
 import {Api} from "telegram";
-import Client = Api.Client;
-import KeyboardButtonRow = Api.KeyboardButtonRow;
-import ReplyInlineMarkup = Api.ReplyInlineMarkup;
-import KeyboardButtonCallback = Api.KeyboardButtonCallback;
 import {YouTubeService, YouTubeServiceInterface} from "../../../Services/YouTube/YouTubeService";
 import {VideoRepository, VideoRepositoryInterface} from "../../../Repositories/VideoRepository";
 import Video from "../../../../models/videos";
@@ -13,7 +8,6 @@ import {AudioFormatRepository, AudioFormatRepositoryInterface} from "../../../Re
 import {TelegramServiceInterface} from "../../../Services/Telegram/TelegramService";
 import {TelegramDataRepositoryInterface} from "../../../Repositories/TelegramDataRepository";
 import {ChoseQualityCallbackKeyboard} from "../../Callbacks/Keyboards/ChoseQualityCallbackKeyboard";
-import AudioFormat from "../../../../models/audio_formats";
 
 export class YouTubeLinkHandler implements MessageHandlerInterface {
     readonly YOUTUBE_LINK_REG: RegExp = /^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube(?:-nocookie)?\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|live\/|v\/)?)([\w\-]+)(\S+)?$/g;
