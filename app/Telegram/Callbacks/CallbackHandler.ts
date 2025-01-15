@@ -14,7 +14,6 @@ export abstract class AbstractCallbackHandler implements CallbackHandlerInterfac
     declare readonly prefix: string;
 
     protected getDataFromRaw(rawData: string): string {
-        console.log(rawData);
         return rawData.replace(this.prefix, "");
     }
 

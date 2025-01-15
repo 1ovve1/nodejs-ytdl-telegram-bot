@@ -11,15 +11,9 @@ export class CancelDownloadProcessCallback extends AbstractCallbackHandler{
 
     readonly videoQueueService: VideoQueueServiceInterface = VideoQueueService.make();
 
-    readonly videoRepository: VideoRepositoryInterface = new VideoRepository();
-
     async handle(telegramService: TelegramServiceInterface, telegramData: TelegramDataRepositoryInterface): Promise<void> {
         const videoId = Number(this.getDataFromRaw(telegramData.getMessageContent()));
 
         this.videoQueueService.dropByKey(videoId);
-
-        await this.videoRepository.delete(
-            await this.videoRepository.findById(videoId)
-        );
     }
 }

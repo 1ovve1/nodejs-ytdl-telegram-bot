@@ -108,8 +108,6 @@ export class TelegramService implements TelegramServiceInterface {
     async sendVideo(params: VideoMessageParams): Promise<Api.Message> {
         params.chatId ??= await this.client.getInputEntity(this.telegramData.getSenderId());
 
-        console.log(params.videoFormat);
-
         return this.client.sendFile(params.chatId, {
             caption: params.content,
             file: params.file,

@@ -22,11 +22,11 @@ export class RetryYouTubeDownloadCallback extends AbstractCallbackHandler {
 
         const video: Video = await this.videoRepository.findById(videoId);
 
-        const formats = await this.youtubeService.getFormats(video);
+        const formats = [
+            ...await this.videoFormatRepository.findAllFor(video),
+            ...await this.audioFormatRepository.findAllFor(video),
+        ];
 
-        const videoFormats = await this.videoFormatRepository.createMany(video, formats);
-        const audioFormat = await this.audioFormatRepository.create(video, formats);
-
-        await telegramService.editMessage({content: "Выберите качество:", keyboard: new ChoseQualityCallbackKeyboard([...videoFormats, audioFormat])})
+        await telegramService.editMessage({content: "Выберите качество:", keyboard: new ChoseQualityCallbackKeyboard(formats)})
     }
 }

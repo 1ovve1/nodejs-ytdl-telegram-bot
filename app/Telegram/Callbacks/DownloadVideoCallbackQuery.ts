@@ -23,7 +23,6 @@ export class DownloadVideoCallbackQuery extends AbstractCallbackHandler{
     readonly fileSystemService: FileSystemServiceInterface = new FileSystemService();
 
     readonly videoFormatRepository: VideoFormatRepositoryInterface = new VideoFormatRepository();
-    readonly videoRepository: VideoRepositoryInterface = new VideoRepository();
 
     async handle(telegramService: TelegramServiceInterface, telegramData: TelegramDataRepositoryInterface): Promise<void> {
         const videoFormatId = Number(this.getDataFromRaw(telegramData.getMessageContent()));
@@ -43,15 +42,12 @@ export class DownloadVideoCallbackQuery extends AbstractCallbackHandler{
                 const videoFileStream = await this.ffmpegService.combineAudioAndVideoFromYouTubeStream(
                     youTubeMetaData,
                     async (progress, command: FfmpegCommand) => {
-                        try {
-                            await this.videoRepository.isExists(video)
-
-                            await telegramService.editMessage({ content: `${ Math.round(progress.percent ?? 0)}%...`, keyboard: new CancelProcessCallbackKeyboard(video) });
-                        } catch (_) {
+                        if (this.videoQueueService.key(video) === undefined) {
                             command.kill("SIGTERM");
-
                             throw new Error('SIGTERM');
                         }
+
+                        await telegramService.editMessage({ content: `${Math.round(progress.percent ?? 0)}%...`, keyboard: new CancelProcessCallbackKeyboard(video) });
                     }
                 );
 
@@ -59,7 +55,7 @@ export class DownloadVideoCallbackQuery extends AbstractCallbackHandler{
 
                 const file = await telegramService.uploadFile(youTubeMetaData.videoInfo.getTitle(), videoFileStream);
 
-                await telegramService.sendVideo({content: youTubeMetaData.videoInfo.getTitle(), file, videoFormat: chosenVideoFormat})
+                await telegramService.sendVideo({content: `${youTubeMetaData.videoInfo.getTitle()}\n\n${youTubeMetaData.videoInfo.getTimeMarkers()}`.substring(0, 4095), file, videoFormat: chosenVideoFormat})
 
                 this.fileSystemService.delete(videoFileStream);
 
