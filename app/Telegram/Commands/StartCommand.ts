@@ -4,7 +4,7 @@ import {TelegramDataRepositoryInterface} from "../../Repositories/TelegramDataRe
 
 export class StartCommand implements CommandInterface {
     async handle(telegramService: TelegramServiceInterface, telegramData: TelegramDataRepositoryInterface): Promise<void> {
-        await telegramService.sendMessage({ content: "Welcome!" });
+        await telegramService.sendMessage({ content: "Проект Разгром.\n\nДанный бот Загружает видео из YouTube в телеграм: просто отправьте ссылку и выбирете качество.\n\n/queue - узнать текущее состояние очереди." });
     }
 
     name(): string {
