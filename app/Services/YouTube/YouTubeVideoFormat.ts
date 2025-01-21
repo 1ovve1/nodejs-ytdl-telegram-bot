@@ -71,11 +71,11 @@ export class YouTubeVideoFormat implements YouTubeVideoFormatInterface {
     }
 
     isQuality(quality: string): boolean {
-        return this.getQuality() === quality;
+        return this.getQuality().startsWith(quality);
     }
 
     isQualityLabel(qualityLabel: string): boolean {
-        return this.getQualityLabel() === qualityLabel;
+        return this.getQualityLabel().startsWith(qualityLabel);
     }
 
     isVideoCodec(codec: string): boolean {

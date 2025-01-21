@@ -37,19 +37,8 @@ export class YouTubeService implements YouTubeServiceInterface {
 
         const videoInfo: YouTubeVideoInfoInterface = await this.getInfo(video);
 
-        let videoFormat: YouTubeVideoFormatInterface;
-        try {
-            // try to get H.264 codec for better performance
-            const qualityLabel = `${chosenYouTubeVideoFormat.getQualityLabel().split('p')[0]}p`;
-
-            videoFormat = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasVideo().isQualityLabel(qualityLabel).isVideoCodec("H.264").isUrlOk().check());
-        } catch (error) {
-            videoFormat = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasVideo().isQualityLabel(chosenYouTubeVideoFormat.getQualityLabel()).isUrlOk().check());
-        }
-
-        console.log(videoFormat.getInstance());
-
-        const audioFormat: YouTubeVideoFormatInterface = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasAudio().isAudioCodec('mp4a').isUrlOk().check());
+        const videoFormat = await this.findVideoFormatInFormats(videoInfo, chosenYouTubeVideoFormat);
+        const audioFormat: YouTubeVideoFormatInterface = await this.findAudioFormatInFormats(videoInfo);
 
         return {
             videoInfo,
@@ -61,10 +50,8 @@ export class YouTubeService implements YouTubeServiceInterface {
     async getMetaDataFromAudioFormat(video: Video, audioFormatModel: AudioFormat): Promise<YouTubeAudioMetaDataInterface> {
         console.log(`Download audio ${video.id}...`);
 
-        const chosenAudioFormat: YouTubeVideoFormatInterface = new YouTubeVideoFormat(JSON.parse(audioFormatModel.format) as videoFormat);
-
         const videoInfo: YouTubeVideoInfoInterface = await this.getInfo(video);
-        const audioFormat: YouTubeVideoFormatInterface = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasAudio().isAudioBitrate(chosenAudioFormat.getAudioBitrate()).isUrlOk().check());
+        const audioFormat: YouTubeVideoFormatInterface = await this.findAudioFormatInFormats(videoInfo);
 
         return {
             videoInfo,
@@ -79,6 +66,41 @@ export class YouTubeService implements YouTubeServiceInterface {
 
     async getInfo(video: Video): Promise<YouTubeVideoInfoInterface> {
         return new YouTubeVideoInfoInterface(await ytdl.getInfo(video.url, { agent: this.agent }));
+    }
+
+    private async findAudioFormatInFormats(videoInfo: YouTubeVideoInfoInterface): Promise<YouTubeVideoFormatInterface> {
+        const audioFormat: YouTubeVideoFormatInterface | undefined = videoInfo
+            .getFormats()
+            .sort((a, b) => b.getAudioBitrate() - a.getAudioBitrate())
+            .find(async value => await value.isUrlOk());
+
+        if (audioFormat === undefined) {
+            throw new Error("Cannot find audio file");
+        }
+
+        return audioFormat
+    }
+
+    private async findVideoFormatInFormats(videoInfo: YouTubeVideoInfoInterface, chosenYouTubeVideoFormat: YouTubeVideoFormatInterface): Promise<YouTubeVideoFormatInterface> {
+        let videoFormat: YouTubeVideoFormatInterface;
+        // try to get H.264 codec for better performance
+        const qualityLabel = `${chosenYouTubeVideoFormat.getQualityLabel().split('p')[0]}p`;
+
+        videoFormat = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasVideo().isQualityLabel(qualityLabel).isVideoCodec("H.264").isUrlOk().check());
+
+        if (videoFormat === undefined) {
+            videoFormat = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasVideo().isQualityLabel(chosenYouTubeVideoFormat.getQualityLabel()).isUrlOk().check());
+
+            if (videoFormat === undefined) {
+                videoFormat = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasVideo().isQualityLabel(qualityLabel).isUrlOk().check());
+
+                if (videoFormat === undefined) {
+                    throw new Error("Cannot find video file");
+                }
+            }
+        }
+
+        return videoFormat;
     }
 }
 
