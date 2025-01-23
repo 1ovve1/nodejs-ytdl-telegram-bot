@@ -3,9 +3,11 @@ import VideoFormat from "../../../../models/video_formats";
 import AudioFormat from "../../../../models/audio_formats";
 import {DownloadAudioCallbackQuery} from "../DownloadAudioCallbackQuery";
 import {DownloadVideoCallbackQuery} from "../DownloadVideoCallbackQuery";
-import {FileHelper} from "../../../Helpers/FileHelper";
+import {FileSystemService, FileSystemServiceInterface} from "../../../Services/FileSystem/FileSystemService";
 
 export class ChoseQualityCallbackKeyboard extends AbstractCallbackKeyboard implements CallbackKeyboardInterface {
+    readonly fileSystemService: FileSystemServiceInterface = new FileSystemService();
+
     constructor(options: QualityOptions[]) {
         super();
 
@@ -18,7 +20,7 @@ export class ChoseQualityCallbackKeyboard extends AbstractCallbackKeyboard imple
                 if (audioFormat === undefined) {
                     return new DownloadVideoCallbackQuery().make(`~${option.label} (${option.humanizeFileSize()})`, option.id);
                 } else {
-                    return new DownloadVideoCallbackQuery().make(`~${option.label} (${FileHelper.resolveHumanizeFileSizeByGivenBytes(option.size + audioFormat.size)})`, option.id);
+                    return new DownloadVideoCallbackQuery().make(`~${option.label} (${this.fileSystemService.resolveHumanizeFileSizeByGivenBytes(option.size + audioFormat.size)})`, option.id);
                 }
             }
         }).map(option => {

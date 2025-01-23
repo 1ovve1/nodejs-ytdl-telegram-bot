@@ -1,7 +1,6 @@
 import { Model, DataTypes, Optional } from 'sequelize';
 import sequelize from '../sequelize';
-import Video from "./videos";
-import {FileHelper} from "../app/Helpers/FileHelper";  // Import the configured Sequelize instance
+import {FileSystemService} from "../app/Services/FileSystem/FileSystemService";
 
 interface AudioFormatAttributes {
     id: number;
@@ -21,7 +20,7 @@ class AudioFormat extends Model<AudioFormatAttributes, AudioFormatCreationAttrib
     declare label: string;
 
     humanizeFileSize(): string {
-        return FileHelper.resolveHumanizeFileSizeByGivenBytes(this.size)
+        return new FileSystemService().resolveHumanizeFileSizeByGivenBytes(this.size)
     }
 }
 

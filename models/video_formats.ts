@@ -1,7 +1,7 @@
 import { Model, DataTypes, Optional } from 'sequelize';
 import sequelize from '../sequelize';
 import Video from "./videos";
-import {FileHelper} from "../app/Helpers/FileHelper";  // Import the configured Sequelize instance
+import {FileSystemService} from "../app/Services/FileSystem/FileSystemService";
 
 interface VideoFormatAttributes {
     id: number;
@@ -21,7 +21,7 @@ class VideoFormat extends Model<VideoFormatAttributes, VideoFormatCreationAttrib
     declare label: string;
 
     humanizeFileSize(): string {
-        return FileHelper.resolveHumanizeFileSizeByGivenBytes(this.size)
+        return new FileSystemService().resolveHumanizeFileSizeByGivenBytes(this.size)
     }
 }
 

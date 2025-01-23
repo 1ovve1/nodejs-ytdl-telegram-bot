@@ -4,6 +4,7 @@ import ffmpeg, {FfmpegCommand} from "fluent-ffmpeg";
 import * as fs from "node:fs";
 import cookies from "./../../../cookies.json";
 import {YouTubeAudioMetaDataInterface, YouTubeVideoMetaDataInterface} from "../YouTube/YouTubeService";
+import {FileSystemService, FileSystemServiceInterface} from "../FileSystem/FileSystemService";
 
 export interface FFmpegServiceInterface {
     combineAudioAndVideoFromYouTubeStream(
@@ -19,6 +20,8 @@ export class FFmpegService implements FFmpegServiceInterface {
     readonly delayTime: number = 3000;
     readonly destinationPath: string = "build/storage";
     readonly cookies: string = '';
+
+    readonly fileSystemService: FileSystemServiceInterface = new FileSystemService();
 
     constructor() {
         this.cookies = cookies
@@ -42,7 +45,7 @@ export class FFmpegService implements FFmpegServiceInterface {
                 if (oldProgressValue !== progress.percent) {
                     onProgress(progress, command).catch((err) => {
                         reject(err);
-                        fs.unlink(resultOutPath, () => {});
+                        this.fileSystemService.delete(fs.createReadStream(resultOutPath));
                     });
 
                     oldProgressValue = progress.percent;
@@ -91,7 +94,7 @@ export class FFmpegService implements FFmpegServiceInterface {
                 if (oldProgressValue !== progress.percent) {
                     onProgress(progress, command).catch((err) => {
                         reject(err);
-                        fs.unlink(resultOutPath, () => {});
+                        this.fileSystemService.delete(fs.createReadStream(resultOutPath));
                     });
 
                     oldProgressValue = progress.percent;
