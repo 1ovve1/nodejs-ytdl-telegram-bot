@@ -34,6 +34,8 @@ export interface YouTubeVideoFormatInterface {
 
     getQuality(): string;
 
+    getSize(): number;
+
     getUrl(): string;
 
     getQualityLabel(): string;
@@ -118,10 +120,18 @@ export class YouTubeVideoFormat implements YouTubeVideoFormatInterface {
         return this.videoFormat.url ?? '';
     }
 
+    getSize(): number {
+        const duration = Math.trunc(Number(this.videoFormat.approxDurationMs) / 1000) + 1;
+        const bitrate = Number(this.videoFormat.averageBitrate);
+
+        return Math.trunc((duration * bitrate) / 8) + 1;
+    }
+
     toVideoFormatModel(video: Video): VideoFormatCreationAttributes {
         return {
             video_id: video.id,
             format: JSON.stringify(this.videoFormat),
+            size: this.getSize(),
             label: `${this.getQualityLabel()} ${this.videoFormat.fps ?? 25}fps`,
         };
     }
@@ -130,6 +140,7 @@ export class YouTubeVideoFormat implements YouTubeVideoFormatInterface {
         return {
             video_id: video.id,
             format: JSON.stringify(this.videoFormat),
+            size: this.getSize(),
             label: `Only Audio`,
         };
     }

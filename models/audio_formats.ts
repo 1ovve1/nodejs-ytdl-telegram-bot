@@ -1,11 +1,13 @@
 import { Model, DataTypes, Optional } from 'sequelize';
 import sequelize from '../sequelize';
-import Video from "./videos";  // Import the configured Sequelize instance
+import Video from "./videos";
+import {FileHelper} from "../app/Helpers/FileHelper";  // Import the configured Sequelize instance
 
 interface AudioFormatAttributes {
     id: number;
     video_id: number;
     format: string;
+    size: number;
     label: string;
 }
 
@@ -15,7 +17,12 @@ class AudioFormat extends Model<AudioFormatAttributes, AudioFormatCreationAttrib
     declare id: number;
     declare video_id: number;
     declare format: string;
+    declare size: number;
     declare label: string;
+
+    humanizeFileSize(): string {
+        return FileHelper.resolveHumanizeFileSizeByGivenBytes(this.size)
+    }
 }
 
 AudioFormat.init(
@@ -35,6 +42,9 @@ AudioFormat.init(
         },
         format: {
             type: DataTypes.JSON,
+        },
+        size: {
+            type: DataTypes.INTEGER,
         },
         label: {
             type: DataTypes.STRING,

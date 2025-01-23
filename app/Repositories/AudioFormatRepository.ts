@@ -16,9 +16,11 @@ export interface AudioFormatRepositoryInterface {
 }
 
 export class AudioFormatRepository implements AudioFormatRepositoryInterface {
+    readonly MAX_FILE_SIZE_BYTES: number = 2048 * 1024 * 1024;
+
     async create(video: Video, youTubeVideoFormatInterfaces: YouTubeVideoFormatInterface[]): Promise<AudioFormat> {
         const formats: AudioFormat = await AudioFormat.create(
-                youTubeVideoFormatInterfaces.filter((youTubeVideoFormat: YouTubeVideoFormatInterface) => youTubeVideoFormat.hasAudio())
+                youTubeVideoFormatInterfaces.filter((youTubeVideoFormat: YouTubeVideoFormatInterface) => youTubeVideoFormat.hasAudio() && youTubeVideoFormat.getSize() < this.MAX_FILE_SIZE_BYTES)
                     .sort((element: YouTubeVideoFormatInterface, comparable: YouTubeVideoFormatInterface) => element.getAudioBitrate() - comparable.getAudioBitrate())
                     .map((videoFormat: YouTubeVideoFormatInterface) => videoFormat.toAudioFormatModel(video)).pop()
         );

@@ -18,10 +18,12 @@ export interface VideoFormatRepositoryInterface {
 }
 
 export class VideoFormatRepository implements VideoFormatRepositoryInterface {
+    readonly MAX_FILE_SIZE_BYTES: number = 2048 * 1024 * 1024;
+
     async createMany(video: Video, youTubeVideoFormatInterfaces: YouTubeVideoFormatInterface[]): Promise<VideoFormat[]> {
         const formats: VideoFormat[] = await VideoFormat.bulkCreate(
             Array.from(
-                youTubeVideoFormatInterfaces.filter((youTubeVideoFormat: YouTubeVideoFormatInterface) => youTubeVideoFormat.hasVideo() && youTubeVideoFormat.hasThumbnails())
+                youTubeVideoFormatInterfaces.filter((youTubeVideoFormat: YouTubeVideoFormatInterface) => youTubeVideoFormat.hasVideo() && youTubeVideoFormat.hasThumbnails() && youTubeVideoFormat.getSize() < this.MAX_FILE_SIZE_BYTES)
                     .sort((element: YouTubeVideoFormatInterface, comparable: YouTubeVideoFormatInterface) => element.getVideoBitrate() - comparable.getVideoBitrate())
                     .reduce((map: Map<string, YouTubeVideoFormatInterface>, element: YouTubeVideoFormatInterface): Map<string, YouTubeVideoFormatInterface> => map.has(element.getQualityLabel()) ? map: map.set(element.getQualityLabel(), element), new Map<string, YouTubeVideoFormatInterface>())
                     .values()

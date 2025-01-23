@@ -80,7 +80,7 @@ export class FFmpegService implements FFmpegServiceInterface {
 
     async downloadFromAudioFormat(audioMetaData: YouTubeAudioMetaDataInterface,
                                   onProgress: FFmpegProgressEvent = async () => {}): Promise<ReadStream> {
-        const resultOutPath: string = `${this.destinationPath}/${audioMetaData.videoInfo.getTitle()}.mp3`;
+        const resultOutPath: string = `${this.destinationPath}/${Date.now().toString()}.mp3`;
 
         return new Promise<ReadStream>((resolve, reject) => {
             // prepare on progress callback
