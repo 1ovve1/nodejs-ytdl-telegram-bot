@@ -15,12 +15,12 @@ export class ChoseQualityCallbackKeyboard extends AbstractCallbackKeyboard imple
 
         options.map(option => {
             if (option instanceof AudioFormat) {
-                return new DownloadAudioCallbackQuery().make(`~${option.label} (${option.humanizeFileSize()})`, option.id);
+                return new DownloadAudioCallbackQuery().make(`${option.label} (~${option.humanizeFileSize()})`, option.id);
             } else {
                 if (audioFormat === undefined) {
-                    return new DownloadVideoCallbackQuery().make(`~${option.label} (${option.humanizeFileSize()})`, option.id);
+                    return new DownloadVideoCallbackQuery().make(`${option.label} (~${option.humanizeFileSize()})`, option.id);
                 } else {
-                    return new DownloadVideoCallbackQuery().make(`~${option.label} (${this.fileSystemService.resolveHumanizeFileSizeByGivenBytes(option.size + audioFormat.size)})`, option.id);
+                    return new DownloadVideoCallbackQuery().make(`${option.label} (~${this.fileSystemService.resolveHumanizeFileSizeByGivenBytes(option.size + audioFormat.size)})`, option.id);
                 }
             }
         }).map(option => {
