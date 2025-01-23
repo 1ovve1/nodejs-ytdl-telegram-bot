@@ -77,7 +77,7 @@ export class YouTubeVideoInfoInterface implements YouTubeVideoInfoInterface {
             }
         }
 
-        return Promise.reject()
+        return Promise.reject(new Error("Cannot find correct format in given formats for " + this.videoInfo.videoDetails.video_url));
     }
 }
 

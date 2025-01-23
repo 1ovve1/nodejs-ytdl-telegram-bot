@@ -55,6 +55,7 @@ export class DownloadVideoCallbackQuery extends AbstractCallbackHandler{
 
                 const file = await telegramService.uploadFile(youTubeMetaData.videoInfo.getTitle(), videoFileStream);
 
+
                 await telegramService.sendVideo({content: `${youTubeMetaData.videoInfo.getTitle()}\n\n${youTubeMetaData.videoInfo.getTimeMarkers()}`.substring(0, 4095), file, videoFormat: chosenVideoFormat})
 
                 this.fileSystemService.delete(videoFileStream);

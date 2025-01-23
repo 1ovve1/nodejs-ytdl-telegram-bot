@@ -86,21 +86,20 @@ export class YouTubeService implements YouTubeServiceInterface {
         // try to get H.264 codec for better performance
         const qualityLabel = `${chosenYouTubeVideoFormat.getQualityLabel().split('p')[0]}p`;
 
-        videoFormat = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasVideo().isQualityLabel(qualityLabel).isVideoCodec("H.264").isUrlOk().check());
-
-        if (videoFormat === undefined) {
-            videoFormat = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasVideo().isQualityLabel(chosenYouTubeVideoFormat.getQualityLabel()).isUrlOk().check());
-
-            if (videoFormat === undefined) {
-                videoFormat = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> => value.hasVideo().isQualityLabel(qualityLabel).isUrlOk().check());
-
-                if (videoFormat === undefined) {
-                    throw new Error("Cannot find video file");
-                }
+        try {
+            videoFormat = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> =>
+                value.hasVideo().isQualityLabel(qualityLabel).isVideoCodec("H.264").isUrlOk().check());
+        } catch (error) {
+            try {
+                videoFormat = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> =>
+                    value.hasVideo().isQualityLabel(chosenYouTubeVideoFormat.getQualityLabel()).isUrlOk().check());
+            } catch (error) {
+                videoFormat = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> =>
+                    value.hasVideo().isQualityLabel(qualityLabel).isUrlOk().check());
             }
         }
 
-        return videoFormat;
+        return videoFormat ?? chosenYouTubeVideoFormat;
     }
 }
 

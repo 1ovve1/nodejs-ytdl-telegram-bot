@@ -13,7 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@distube/ytdl-core": "^4.15.8",
+    "@distube/ytdl-core": "github:ToddyTheNoobDud/ytdl-core-stuff",
     "@types/throttle-debounce": "^5.0.2",
     "dotenv": "^16.4.7",
     "fluent-ffmpeg": "^2.1.3",
