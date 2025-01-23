@@ -45,7 +45,7 @@ export class FFmpegService implements FFmpegServiceInterface {
                 if (oldProgressValue !== progress.percent) {
                     onProgress(progress, command).catch((err) => {
                         reject(err);
-                        this.fileSystemService.delete(fs.createReadStream(resultOutPath));
+                        fs.unlink(resultOutPath, () => {});
                     });
 
                     oldProgressValue = progress.percent;
@@ -94,7 +94,7 @@ export class FFmpegService implements FFmpegServiceInterface {
                 if (oldProgressValue !== progress.percent) {
                     onProgress(progress, command).catch((err) => {
                         reject(err);
-                        this.fileSystemService.delete(fs.createReadStream(resultOutPath));
+                        fs.unlink(resultOutPath, () => {});
                     });
 
                     oldProgressValue = progress.percent;

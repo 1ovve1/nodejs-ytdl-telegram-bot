@@ -13,6 +13,8 @@ export interface YouTubeServiceInterface {
 
     getFormats(video: Video): Promise<YouTubeVideoFormatInterface[]>;
     getInfo(vide: Video): Promise<YouTubeVideoInfoInterface>
+
+    findVideoFormatInFormats(videoInfo: YouTubeVideoInfoInterface, chosenYouTubeVideoFormat: YouTubeVideoFormatInterface): Promise<YouTubeVideoFormatInterface>;
 }
 
 export class YouTubeService implements YouTubeServiceInterface {
@@ -81,18 +83,18 @@ export class YouTubeService implements YouTubeServiceInterface {
         return audioFormat
     }
 
-    private async findVideoFormatInFormats(videoInfo: YouTubeVideoInfoInterface, chosenYouTubeVideoFormat: YouTubeVideoFormatInterface): Promise<YouTubeVideoFormatInterface> {
+    public async findVideoFormatInFormats(videoInfo: YouTubeVideoInfoInterface, chosenYouTubeVideoFormat: YouTubeVideoFormatInterface): Promise<YouTubeVideoFormatInterface> {
         let videoFormat: YouTubeVideoFormatInterface;
         // try to get H.264 codec for better performance
         const qualityLabel = `${chosenYouTubeVideoFormat.getQualityLabel().split('p')[0]}p`;
 
         try {
             videoFormat = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> =>
-                value.hasVideo().isQualityLabel(chosenYouTubeVideoFormat.getQualityLabel()).isUrlOk().check());
+                value.hasVideo().isQualityLabel(qualityLabel).isVideoCodec("H.264").isUrlOk().check());
         } catch (error) {
             try {
                 videoFormat = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> =>
-                    value.hasVideo().isQualityLabel(qualityLabel).isVideoCodec("H.264").isUrlOk().check());
+                    value.hasVideo().isQualityLabel(chosenYouTubeVideoFormat.getQualityLabel()).isUrlOk().check());
             } catch (error) {
                 videoFormat = await videoInfo.findInFormatsChecker(async (value: YouTubeVideoFormatCheckerInterface): Promise<boolean> =>
                     value.hasVideo().isQualityLabel(qualityLabel).isUrlOk().check());

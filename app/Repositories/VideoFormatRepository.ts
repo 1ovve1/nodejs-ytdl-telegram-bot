@@ -7,9 +7,11 @@ import {
     YouTubeVideoFormatChecker,
     YouTubeVideoFormatInterface
 } from "../Services/YouTube/YouTubeVideoFormat";
+import {YouTubeVideoInfoInterface} from "../Services/YouTube/YouTubeVideoInfo";
+import {YouTubeService} from "../Services/YouTube/YouTubeService";
 
 export interface VideoFormatRepositoryInterface {
-    createMany(video: Video, youTubeVideoFormat: YouTubeVideoFormatInterface[]): Promise<VideoFormat[]>
+    createMany(video: Video, youTubeVideoInfo: YouTubeVideoInfoInterface): Promise<VideoFormat[]>
     findById(id: number): Promise<VideoFormat>;
     findAllFor(video: Video): Promise<VideoFormat[]>;
     existsFor(video: Video): Promise<boolean>;
@@ -20,14 +22,15 @@ export interface VideoFormatRepositoryInterface {
 export class VideoFormatRepository implements VideoFormatRepositoryInterface {
     readonly MAX_FILE_SIZE_BYTES: number = 2048 * 1024 * 1024;
 
-    async createMany(video: Video, youTubeVideoFormatInterfaces: YouTubeVideoFormatInterface[]): Promise<VideoFormat[]> {
+    async createMany(video: Video, youTubeVideoInfo: YouTubeVideoInfoInterface): Promise<VideoFormat[]> {
         const formats: VideoFormat[] = await VideoFormat.bulkCreate(
-            Array.from(
-                youTubeVideoFormatInterfaces.filter((youTubeVideoFormat: YouTubeVideoFormatInterface) => youTubeVideoFormat.hasVideo() && youTubeVideoFormat.hasThumbnails() && youTubeVideoFormat.getSize() < this.MAX_FILE_SIZE_BYTES)
+            await Promise.all(Array.from(
+                youTubeVideoInfo.getFormats()
+                    .filter((youTubeVideoFormat: YouTubeVideoFormatInterface) => youTubeVideoFormat.hasVideo() && youTubeVideoFormat.hasThumbnails() && youTubeVideoFormat.getSize() < this.MAX_FILE_SIZE_BYTES)
                     .sort((element: YouTubeVideoFormatInterface, comparable: YouTubeVideoFormatInterface) => element.getVideoBitrate() - comparable.getVideoBitrate())
                     .reduce((map: Map<string, YouTubeVideoFormatInterface>, element: YouTubeVideoFormatInterface): Map<string, YouTubeVideoFormatInterface> => map.has(element.getQualityLabel()) ? map: map.set(element.getQualityLabel(), element), new Map<string, YouTubeVideoFormatInterface>())
                     .values()
-            ).map((videoFormat: YouTubeVideoFormatInterface) => videoFormat.toVideoFormatModel(video))
+            ).map(async (videoFormat: YouTubeVideoFormatInterface) => (await new YouTubeService().findVideoFormatInFormats(youTubeVideoInfo, videoFormat)).toVideoFormatModel(video)))
         );
 
         return Promise.resolve(formats);

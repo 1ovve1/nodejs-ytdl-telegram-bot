@@ -5,9 +5,11 @@ import {
     YouTubeVideoFormatInterface
 } from "../Services/YouTube/YouTubeVideoFormat";
 import AudioFormat from "../../models/audio_formats";
+import {YouTubeVideoInfoInterface} from "../Services/YouTube/YouTubeVideoInfo";
+import {YouTubeService, YouTubeServiceInterface} from "../Services/YouTube/YouTubeService";
 
 export interface AudioFormatRepositoryInterface {
-    create(video: Video, youTubeVideoFormat: YouTubeVideoFormatInterface[]): Promise<AudioFormat>
+    create(video: Video, youTubeVideoInfo: YouTubeVideoInfoInterface): Promise<AudioFormat>
     findById(id: number): Promise<AudioFormat>;
     findAllFor(video: Video): Promise<AudioFormat[]>;
     existsFor(video: Video): Promise<boolean>;
@@ -18,9 +20,10 @@ export interface AudioFormatRepositoryInterface {
 export class AudioFormatRepository implements AudioFormatRepositoryInterface {
     readonly MAX_FILE_SIZE_BYTES: number = 2048 * 1024 * 1024;
 
-    async create(video: Video, youTubeVideoFormatInterfaces: YouTubeVideoFormatInterface[]): Promise<AudioFormat> {
+    async create(video: Video, youTubeVideoInfo: YouTubeVideoInfoInterface): Promise<AudioFormat> {
         const formats: AudioFormat = await AudioFormat.create(
-                youTubeVideoFormatInterfaces.filter((youTubeVideoFormat: YouTubeVideoFormatInterface) => youTubeVideoFormat.hasAudio() && youTubeVideoFormat.getSize() < this.MAX_FILE_SIZE_BYTES)
+                await youTubeVideoInfo.getFormats()
+                    .filter((youTubeVideoFormat: YouTubeVideoFormatInterface) => youTubeVideoFormat.hasAudio() && youTubeVideoFormat.getSize() < this.MAX_FILE_SIZE_BYTES)
                     .sort((element: YouTubeVideoFormatInterface, comparable: YouTubeVideoFormatInterface) => element.getAudioBitrate() - comparable.getAudioBitrate())
                     .map((videoFormat: YouTubeVideoFormatInterface) => videoFormat.toAudioFormatModel(video)).pop()
         );

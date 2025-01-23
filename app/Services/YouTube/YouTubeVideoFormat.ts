@@ -122,7 +122,7 @@ export class YouTubeVideoFormat implements YouTubeVideoFormatInterface {
 
     getSize(): number {
         const duration = Math.trunc(Number(this.videoFormat.approxDurationMs) / 1000) + 1;
-        const bitrate = Number(this.videoFormat.bitrate);
+        const bitrate = Number(this.videoFormat.averageBitrate);
 
         return Math.trunc((duration * bitrate) / 8) + 1;
     }

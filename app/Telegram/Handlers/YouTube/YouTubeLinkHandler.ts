@@ -23,10 +23,10 @@ export class YouTubeLinkHandler implements MessageHandlerInterface {
 
         const video: Video = await this.videoRepository.create(videoUrl);
 
-        const formats = await this.youtubeService.getFormats(video);
+        const videoInfo = await this.youtubeService.getInfo(video);
 
-        const videoFormats = await this.videoFormatRepository.createMany(video, formats);
-        const audioFormat = await this.audioFormatRepository.create(video, formats);
+        const videoFormats = await this.videoFormatRepository.createMany(video, videoInfo);
+        const audioFormat = await this.audioFormatRepository.create(video, videoInfo);
 
         await telegramService.replyTo({content: "Выберите качество:", keyboard: new ChoseQualityCallbackKeyboard([...videoFormats, audioFormat])})
     }
