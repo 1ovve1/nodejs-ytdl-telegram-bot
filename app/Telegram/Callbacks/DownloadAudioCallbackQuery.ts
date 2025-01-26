@@ -16,6 +16,7 @@ import KeyboardButtonCallback = Api.KeyboardButtonCallback;
 import {ButtonLike} from "telegram/define";
 import {CancelProcessCallbackKeyboard} from "./Keyboards/CancelProcessCallbackKeyboard";
 import {RetryYouTubeDownloadCallbackKeyboard} from "./Keyboards/RetryYouTubeDownloadCallbackKeyboard";
+import environment from "../../../environment";
 
 export class DownloadAudioCallbackQuery extends AbstractCallbackHandler {
     readonly prefix: string = "audio_format:";
@@ -57,7 +58,7 @@ export class DownloadAudioCallbackQuery extends AbstractCallbackHandler {
 
                 await telegramService.editMessage({ content: `Выгрузка в телеграмм...` });
 
-                const file = await telegramService.uploadFile(youTubeAudioMetaData.videoInfo.getTitle(), audioFileStream);
+                const file = await telegramService.uploadFile(youTubeAudioMetaData.videoInfo.getTitle().concat(`\b${environment?.BOT_USERNAME ?? ''}`), audioFileStream);
 
                 await telegramService.sendMessage({content: youTubeAudioMetaData.videoInfo.getTitle(), file})
 

@@ -13,6 +13,7 @@ import KeyboardButtonCallback = Api.KeyboardButtonCallback;
 import ytdl from "@distube/ytdl-core";
 import {CancelProcessCallbackKeyboard} from "./Keyboards/CancelProcessCallbackKeyboard";
 import {RetryYouTubeDownloadCallbackKeyboard} from "./Keyboards/RetryYouTubeDownloadCallbackKeyboard";
+import environment from "../../../environment";
 
 export class DownloadVideoCallbackQuery extends AbstractCallbackHandler{
     readonly prefix: string = "video_format:";
@@ -55,8 +56,7 @@ export class DownloadVideoCallbackQuery extends AbstractCallbackHandler{
 
                 const file = await telegramService.uploadFile(youTubeMetaData.videoInfo.getTitle(), videoFileStream);
 
-
-                await telegramService.sendVideo({content: `${youTubeMetaData.videoInfo.getTitle()}\n\n${youTubeMetaData.videoInfo.getTimeMarkers()}`.substring(0, 4095), file, videoFormat: chosenVideoFormat})
+                await telegramService.sendVideo({content: `${youTubeMetaData.videoInfo.getTitle()}\n\n${youTubeMetaData.videoInfo.getTimeMarkers()}`.substring(0, 1023 - (environment?.BOT_USERNAME ?? '').length).concat(`\n${environment?.BOT_USERNAME ?? ''}`), file, videoFormat: chosenVideoFormat})
 
                 this.fileSystemService.delete(videoFileStream);
 

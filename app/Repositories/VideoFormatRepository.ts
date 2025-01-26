@@ -24,13 +24,16 @@ export class VideoFormatRepository implements VideoFormatRepositoryInterface {
 
     async createMany(video: Video, youTubeVideoInfo: YouTubeVideoInfoInterface): Promise<VideoFormat[]> {
         const formats: VideoFormat[] = await VideoFormat.bulkCreate(
-            await Promise.all(Array.from(
-                youTubeVideoInfo.getFormats()
-                    .filter((youTubeVideoFormat: YouTubeVideoFormatInterface) => youTubeVideoFormat.hasVideo() && youTubeVideoFormat.hasThumbnails() && youTubeVideoFormat.getSize() < this.MAX_FILE_SIZE_BYTES)
-                    .sort((element: YouTubeVideoFormatInterface, comparable: YouTubeVideoFormatInterface) => element.getVideoBitrate() - comparable.getVideoBitrate())
-                    .reduce((map: Map<string, YouTubeVideoFormatInterface>, element: YouTubeVideoFormatInterface): Map<string, YouTubeVideoFormatInterface> => map.has(element.getQualityLabel()) ? map: map.set(element.getQualityLabel(), element), new Map<string, YouTubeVideoFormatInterface>())
-                    .values()
-            ).map(async (videoFormat: YouTubeVideoFormatInterface) => (await new YouTubeService().findVideoFormatInFormats(youTubeVideoInfo, videoFormat)).toVideoFormatModel(video)))
+            (await Promise.all(
+                Array.from(
+                    youTubeVideoInfo.getFormats()
+                        .filter((youTubeVideoFormat: YouTubeVideoFormatInterface) => youTubeVideoFormat.hasVideo() && youTubeVideoFormat.hasThumbnails())
+                        .sort((element: YouTubeVideoFormatInterface, comparable: YouTubeVideoFormatInterface) => element.getVideoBitrate() - comparable.getVideoBitrate())
+                        .reduce((map: Map<string, YouTubeVideoFormatInterface>, element: YouTubeVideoFormatInterface): Map<string, YouTubeVideoFormatInterface> => map.has(element.getQualityLabel()) ? map: map.set(element.getQualityLabel(), element), new Map<string, YouTubeVideoFormatInterface>())
+                        .values()
+                ).map(async (videoFormat: YouTubeVideoFormatInterface) => await new YouTubeService().findVideoFormatInFormats(youTubeVideoInfo, videoFormat))
+            )).filter((videoFormat) => videoFormat.getSize() < this.MAX_FILE_SIZE_BYTES)
+                .map((videoFormat) => videoFormat.toVideoFormatModel(video))
         );
 
         return Promise.resolve(formats);

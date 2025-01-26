@@ -2,6 +2,7 @@ import * as dotenv from "dotenv";
 
 type EnvironmentContract = {
     APP_ENV?: string;
+    BOT_USERNAME?: string;
     BOT_TOKEN?: string;
     BOT_API_HASH?: string;
     BOT_API_ID?: string;
