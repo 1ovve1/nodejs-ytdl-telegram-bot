@@ -57,7 +57,7 @@ export class DownloadVideoCallbackQuery extends AbstractCallbackHandler{
                 const file = await telegramService.uploadFile(youTubeMetaData.videoInfo.getTitle(), videoFileStream);
 
                 const botUsername: string = (environment?.BOT_USERNAME !== undefined) ? `@${environment.BOT_USERNAME}` : '';
-                await telegramService.sendVideo({content: `${youTubeMetaData.videoInfo.getTitle()}\n\n${youTubeMetaData.videoInfo.getTimeMarkers()}`.substring(0, 1023 - botUsername.length).concat(`\n@${botUsername}`), file, videoFormat: chosenVideoFormat})
+                await telegramService.sendVideo({content: `${youTubeMetaData.videoInfo.getTitle()}\n\n${youTubeMetaData.videoInfo.getTimeMarkers()}`.substring(0, 1023 - botUsername.length).concat(`\n${botUsername}`), file, videoFormat: chosenVideoFormat})
 
                 this.fileSystemService.delete(videoFileStream);
 
