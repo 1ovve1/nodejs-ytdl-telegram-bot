@@ -1,75 +1,33 @@
-import * as dotenv from "dotenv";
-import {TelegramClient} from "telegram";
-import {StringSession} from "telegram/sessions";
-import * as fs from "node:fs";
-import ytdl from "@distube/ytdl-core";
-import ffmpeg from 'fluent-ffmpeg';
-import {switchToChat} from "telegraf/typings/button";
-import {NewMessageEvent} from "telegram/events";
+import {App} from "./app/App";
+import {StartCommand} from "./app/Telegram/Commands/StartCommand";
+import {DatabaseHandler} from "./app/Telegram/Handlers/DatabaseHandler";
+import environment from "./environment";
+import {YouTubeLinkHandler} from "./app/Telegram/Handlers/YouTube/YouTubeLinkHandler";
+import {DownloadVideoCallbackQuery} from "./app/Telegram/Callbacks/DownloadVideoCallbackQuery";
+import {DownloadAudioCallbackQuery} from "./app/Telegram/Callbacks/DownloadAudioCallbackQuery";
+import {CancelDownloadProcessCallback} from "./app/Telegram/Callbacks/CancelDownloadProcessCallback";
+import {RefreshQueuePositionsCallback} from "./app/Telegram/Callbacks/RefreshQueuePositionsCallback";
+import {QueueCommand} from "./app/Telegram/Commands/QueueCommand";
+import {RetryYouTubeDownloadCallback} from "./app/Telegram/Callbacks/RetryYouTubeDownloadCallback";
 
-dotenv.config();
 
-const BOT_TOKEN: string = process.env.BOT_TOKEN ?? '';
-const BOT_API_ID: number = parseInt(process.env.BOT_API_ID ?? '');
-const BOT_API_HASH: string = process.env.BOT_API_HASH ?? ''
+const app = new App(
+    String(environment?.BOT_TOKEN),
+    Number(environment?.BOT_API_ID),
+    String(environment?.BOT_API_HASH),
+).setCommands([
+    new StartCommand(),
+    new QueueCommand(),
+]).setHandlers([
+    new DatabaseHandler(),
+    new YouTubeLinkHandler()
+]).setCallbackHandlers([
+    new DownloadVideoCallbackQuery(),
+    new DownloadAudioCallbackQuery(),
+    new CancelDownloadProcessCallback(),
+    new RefreshQueuePositionsCallback(),
+    new RetryYouTubeDownloadCallback(),
+]);
 
-const stringSessions: string = '';
 
-// Example usage
-const videoUrl = 'https://www.youtube.com/watch?v=Qyx8v1xAs00';
-const outputFilePath = 'video.mp4';
-
-(async () => {
-    const client = new TelegramClient(
-        new StringSession(stringSessions),
-        BOT_API_ID,
-        BOT_API_HASH,
-        { connectionRetries: 5 }
-    );
-
-    await client.start({
-        botAuthToken: BOT_TOKEN,
-    });
-
-    console.log(client.session.save());
-
-    client.addEventHandler(async (update: NewMessageEvent) => {
-        const chat_id = update.message?.chatId;
-
-        if (chat_id === undefined) {
-            return;
-        }
-
-        console.log(update);
-
-        const messageId = update.message.id;
-        const messageContent: string = update.message.message;
-        if (messageContent.match(/^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube(?:-nocookie)?\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|live\/|v\/)?)([\w\-]+)(\S+)?$/g)) {
-            const outputFilePath = `build/storage/video_${messageId}.mp4`;
-            await downloadVideo(messageContent, outputFilePath);
-
-            console.log('sending video...')
-
-            client.sendMessage(1, {buttons: })
-            await client.sendFile(chat_id, {file: fs.createReadStream(outputFilePath).path})
-
-            fs.unlink(outputFilePath, (err) => console.log(err));
-        }
-    })
-})();
-
-async function downloadVideo(url: string, outputFilePath: string): Promise<void>
-{
-    return new Promise(((resolve: () => void, reject: (err: Error) => void) => {
-        // Get the video and audio streams
-        ytdl(url, { filter: 'videoandaudio', quality: "highest", })
-            .pipe(fs.createWriteStream(outputFilePath))
-            .on('finish', () => {
-                resolve()
-            })
-            .on('error', (err: Error) => {
-                reject(err);
-            });
-    }));
-}
-
+app.run();
