@@ -58,7 +58,8 @@ export class DownloadAudioCallbackQuery extends AbstractCallbackHandler {
 
                 await telegramService.editMessage({ content: `Выгрузка в телеграмм...` });
 
-                const file = await telegramService.uploadFile(youTubeAudioMetaData.videoInfo.getTitle().concat(`\b${environment?.BOT_USERNAME ?? ''}`), audioFileStream);
+                const botUsername: string = (environment?.BOT_USERNAME !== undefined) ? `@${environment.BOT_USERNAME}` : '';
+                const file = await telegramService.uploadFile(youTubeAudioMetaData.videoInfo.getTitle().concat(`\b${botUsername}`).trim(), audioFileStream);
 
                 await telegramService.sendMessage({content: youTubeAudioMetaData.videoInfo.getTitle(), file})
 
