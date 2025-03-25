@@ -9,25 +9,34 @@ import {CancelDownloadProcessCallback} from "./app/Telegram/Callbacks/CancelDown
 import {RefreshQueuePositionsCallback} from "./app/Telegram/Callbacks/RefreshQueuePositionsCallback";
 import {QueueCommand} from "./app/Telegram/Commands/QueueCommand";
 import {RetryYouTubeDownloadCallback} from "./app/Telegram/Callbacks/RetryYouTubeDownloadCallback";
+import {MaintenanceStatusHandler} from "./app/Telegram/Handlers/MaintenanceStatusHandler";
+import Environment from "./environment";
 
 
 const app = new App(
     String(environment?.BOT_TOKEN),
     Number(environment?.BOT_API_ID),
     String(environment?.BOT_API_HASH),
-).setCommands([
-    new StartCommand(),
-    new QueueCommand(),
-]).setHandlers([
-    new DatabaseHandler(),
-    new YouTubeLinkHandler()
-]).setCallbackHandlers([
-    new DownloadVideoCallbackQuery(),
-    new DownloadAudioCallbackQuery(),
-    new CancelDownloadProcessCallback(),
-    new RefreshQueuePositionsCallback(),
-    new RetryYouTubeDownloadCallback(),
-]);
+);
 
+if (Environment?.MAINTENANCE_STATUS === 'true') {
+    app.setHandlers([
+        new MaintenanceStatusHandler()
+    ]);
+} else {
+    app.setCommands([
+        new StartCommand(),
+        new QueueCommand(),
+    ]).setHandlers([
+        new DatabaseHandler(),
+        new YouTubeLinkHandler()
+    ]).setCallbackHandlers([
+        new DownloadVideoCallbackQuery(),
+        new DownloadAudioCallbackQuery(),
+        new CancelDownloadProcessCallback(),
+        new RefreshQueuePositionsCallback(),
+        new RetryYouTubeDownloadCallback(),
+    ]);
+}
 
 app.run();
