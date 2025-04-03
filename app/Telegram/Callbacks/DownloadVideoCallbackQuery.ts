@@ -1,15 +1,12 @@
-import {AbstractCallbackHandler, CallbackHandlerInterface} from "./CallbackHandler";
+import {AbstractCallbackHandler} from "./CallbackHandler";
 import {VideoFormatRepository, VideoFormatRepositoryInterface} from "../../Repositories/VideoFormatRepository";
 import {YouTubeVideoMetaDataInterface, YouTubeService, YouTubeServiceInterface } from "../../Services/YouTube/YouTubeService";
 import {FFmpegService, FFmpegServiceInterface} from "../../Services/FFmpeg/FFmpegService";
 import {VideoQueueService, VideoQueueServiceInterface} from "../../Services/YouTube/VideoQueue/VideoQueueService";
 import {FileSystemService, FileSystemServiceInterface} from "../../Services/FileSystem/FileSystemService";
-import {VideoRepository, VideoRepositoryInterface} from "../../Repositories/VideoRepository";
 import {TelegramServiceInterface} from "../../Services/Telegram/TelegramService";
 import {TelegramDataRepositoryInterface} from "../../Repositories/TelegramDataRepository";
 import {FfmpegCommand} from "fluent-ffmpeg";
-import {Api} from "telegram";
-import KeyboardButtonCallback = Api.KeyboardButtonCallback;
 import ytdl from "@distube/ytdl-core";
 import {CancelProcessCallbackKeyboard} from "./Keyboards/CancelProcessCallbackKeyboard";
 import {RetryYouTubeDownloadCallbackKeyboard} from "./Keyboards/RetryYouTubeDownloadCallbackKeyboard";

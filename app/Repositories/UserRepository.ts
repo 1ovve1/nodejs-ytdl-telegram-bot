@@ -2,6 +2,8 @@ import User from "../../models/users";
 import {Api} from "telegram";
 
 export interface UserRepositoryInterface {
+    all(): Promise<User[]>;
+
     findById(id: number): Promise<User>;
 
     isExistsById(id: number): Promise<boolean>;
@@ -10,6 +12,10 @@ export interface UserRepositoryInterface {
 }
 
 export class UserRepository implements UserRepositoryInterface {
+    async all(): Promise<User[]> {
+        return User.findAll();
+    }
+
     async findById(id: number): Promise<User> {
         const user = await User.findOne({ where: { tg_id: id } });
 

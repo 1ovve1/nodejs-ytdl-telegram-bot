@@ -8,6 +8,7 @@ type EnvironmentContract = {
     BOT_API_ID?: string;
     MAINTENANCE_STATUS?: string;
     MAINTENANCE_MESSAGE?: string;
+    ADMIN_ID?: number;
 };
 const environment: EnvironmentContract | undefined = dotenv.config().parsed;
 

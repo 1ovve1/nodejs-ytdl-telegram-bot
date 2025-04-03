@@ -11,6 +11,7 @@ import {QueueCommand} from "./app/Telegram/Commands/QueueCommand";
 import {RetryYouTubeDownloadCallback} from "./app/Telegram/Callbacks/RetryYouTubeDownloadCallback";
 import {MaintenanceStatusHandler} from "./app/Telegram/Handlers/MaintenanceStatusHandler";
 import Environment from "./environment";
+import {NotifyCommand} from "./app/Telegram/Commands/NotifyCommand";
 
 
 const app = new App(
@@ -22,9 +23,12 @@ const app = new App(
 if (Environment?.MAINTENANCE_STATUS === 'true') {
     app.setHandlers([
         new MaintenanceStatusHandler()
+    ]).setCommands([
+        new NotifyCommand()
     ]);
 } else {
     app.setCommands([
+        new NotifyCommand(),
         new StartCommand(),
         new QueueCommand(),
     ]).setHandlers([
