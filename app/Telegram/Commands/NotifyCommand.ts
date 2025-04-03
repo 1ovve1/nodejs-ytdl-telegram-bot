@@ -20,10 +20,15 @@ export class NotifyCommand implements CommandInterface {
                     if (user.username === environment?.BOT_USERNAME) {
                         continue;
                     }
-                    await telegramService.sendMessage({
-                        content: data,
-                        chatId: user.tg_id,
-                    });
+                    try {
+                        await telegramService.sendMessage({
+                            content: data,
+                            chatId: user.tg_id,
+                        });
+                    } catch (e) {
+                        console.error(e);
+                    }
+
                 }
 
                 await sleep(1000);
