@@ -5,7 +5,7 @@ const migration: RunnableMigration<QueryInterface> = {
   name: "Add title column in videos table",
   async up(params): Promise<void> {
     await params.context.addColumn('videos', 'title', {
-      type: DataTypes.INTEGER,
+      type: DataTypes.STRING,
     });
   },
   async down(params): Promise<void> {
