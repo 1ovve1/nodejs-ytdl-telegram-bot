@@ -2,19 +2,20 @@ import ytdl, {Agent, Cookie, videoFormat, videoInfo} from "@distube/ytdl-core";
 import Video from "../../../models/videos";
 import VideoFormat from "../../../models/video_formats";
 import cookies from "./../../../cookies.json";
-import { YouTubeVideoFormat, YouTubeVideoFormatCheckerInterface, YouTubeVideoFormatInterface } from "./YouTubeVideoFormat";
+import { YouTubeVideoFormatCheckerInterface, YouTubeVideoFormatInterface } from "./YouTubeVideoFormat";
 import {YouTubeVideoInfoInterface} from "./YouTubeVideoInfo";
 import AudioFormat from "../../../models/audio_formats";
+import {AudioFormatRepository} from "../../Repositories/AudioFormatRepository";
 
 
 export interface YouTubeServiceInterface {
     getMetaDataFromVideoFormat(video: Video, videoFormatModel: VideoFormat): Promise<YouTubeVideoMetaDataInterface>;
     getMetaDataFromAudioFormat(video: Video, audioFormatModel: AudioFormat): Promise<YouTubeAudioMetaDataInterface>;
 
-    getFormats(video: Video): Promise<YouTubeVideoFormatInterface[]>;
-    getInfo(vide: Video): Promise<YouTubeVideoInfoInterface>
+    getInfo(videoUrl: string): Promise<YouTubeVideoInfoInterface>
 
     findVideoFormatInFormats(videoInfo: YouTubeVideoInfoInterface, chosenYouTubeVideoFormat: YouTubeVideoFormatInterface): Promise<YouTubeVideoFormatInterface>;
+    isVideoOk(videoInfo: YouTubeVideoInfoInterface, chosenYouTubeVideoFormat: YouTubeVideoFormatInterface): Promise<boolean>;
 }
 
 export class YouTubeService implements YouTubeServiceInterface {
@@ -35,15 +36,11 @@ export class YouTubeService implements YouTubeServiceInterface {
     async getMetaDataFromVideoFormat(video: Video, videoFormatModel: VideoFormat): Promise<YouTubeVideoMetaDataInterface> {
         console.log(`Download video ${video.id}...`);
 
-        const chosenYouTubeVideoFormat: YouTubeVideoFormatInterface = new YouTubeVideoFormat(JSON.parse(videoFormatModel.format) as videoFormat);
-
-        const videoInfo: YouTubeVideoInfoInterface = await this.getInfo(video);
-
-        const videoFormat = await this.findVideoFormatInFormats(videoInfo, chosenYouTubeVideoFormat);
-        const audioFormat: YouTubeVideoFormatInterface = await this.findAudioFormatInFormats(videoInfo);
+        const videoFormat = videoFormatModel.toVideoFormatEntity();
+        const audioFormat: YouTubeVideoFormatInterface = (await new AudioFormatRepository().findFor(video)).toVideoFormatEntity();
 
         return {
-            videoInfo,
+            video,
             audioFormat,
             videoFormat
         } as YouTubeVideoMetaDataInterface;
@@ -52,35 +49,17 @@ export class YouTubeService implements YouTubeServiceInterface {
     async getMetaDataFromAudioFormat(video: Video, audioFormatModel: AudioFormat): Promise<YouTubeAudioMetaDataInterface> {
         console.log(`Download audio ${video.id}...`);
 
-        const videoInfo: YouTubeVideoInfoInterface = await this.getInfo(video);
-        const audioFormat: YouTubeVideoFormatInterface = await this.findAudioFormatInFormats(videoInfo);
+        const audioFormat: YouTubeVideoFormatInterface = audioFormatModel.toVideoFormatEntity();
 
         return {
-            videoInfo,
+            video,
             audioFormat,
         } as YouTubeAudioMetaDataInterface;
     }
 
 
-    async getFormats(video: Video): Promise<YouTubeVideoFormatInterface[]> {
-        return (await this.getInfo(video)).getFormats();
-    }
-
-    async getInfo(video: Video): Promise<YouTubeVideoInfoInterface> {
-        return new YouTubeVideoInfoInterface(await ytdl.getInfo(video.url, { agent: this.agent }));
-    }
-
-    private async findAudioFormatInFormats(videoInfo: YouTubeVideoInfoInterface): Promise<YouTubeVideoFormatInterface> {
-        const audioFormat: YouTubeVideoFormatInterface | undefined = videoInfo
-            .getFormats()
-            .sort((a, b) => b.getAudioBitrate() - a.getAudioBitrate())
-            .find(async value => await value.isUrlOk());
-
-        if (audioFormat === undefined) {
-            throw new Error("Cannot find audio file");
-        }
-
-        return audioFormat
+    async getInfo(videoUrl: string): Promise<YouTubeVideoInfoInterface> {
+        return new YouTubeVideoInfoInterface(await ytdl.getInfo(videoUrl, { agent: this.agent }));
     }
 
     public async findVideoFormatInFormats(videoInfo: YouTubeVideoInfoInterface, chosenYouTubeVideoFormat: YouTubeVideoFormatInterface): Promise<YouTubeVideoFormatInterface> {
@@ -103,15 +82,26 @@ export class YouTubeService implements YouTubeServiceInterface {
 
         return videoFormat ?? chosenYouTubeVideoFormat;
     }
+
+    public async isVideoOk(videoInfo: YouTubeVideoInfoInterface, chosenYouTubeVideoFormat: YouTubeVideoFormatInterface): Promise<boolean> {
+        try {
+            await this.findVideoFormatInFormats(videoInfo, chosenYouTubeVideoFormat);
+
+            return true;
+        } catch (error) {
+            console.log(error);
+            return false;
+        }
+    }
 }
 
 export interface YouTubeVideoMetaDataInterface {
-    videoInfo: YouTubeVideoInfoInterface;
+    video: Video,
     videoFormat: YouTubeVideoFormatInterface;
     audioFormat: YouTubeVideoFormatInterface;
 }
 
 export interface YouTubeAudioMetaDataInterface {
-    videoInfo: YouTubeVideoInfoInterface;
+    video: Video,
     audioFormat: YouTubeVideoFormatInterface;
 }

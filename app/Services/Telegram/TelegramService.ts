@@ -8,6 +8,8 @@ import {FileLike, MarkupLike} from "telegram/define";
 import DocumentAttributeVideo = Api.DocumentAttributeVideo;
 import {videoFormat} from "@distube/ytdl-core";
 import {CallbackKeyboardInterface} from "../../Telegram/Callbacks/Keyboards/CallbackKeyboard";
+import environment from "../../../environment";
+import {message} from "telegram/client";
 
 
 export interface TelegramServiceInterface {
@@ -24,9 +26,13 @@ export interface TelegramServiceInterface {
     deleteMessage(params: DeleteMessageParams): Promise<void>;
 
     sendVideo(params: VideoMessageParams): Promise<Api.Message>;
+
+    log(error?: any, context?: string): Promise<void>;
 }
 
 export class TelegramService implements TelegramServiceInterface {
+    readonly defaultParseMode: string = "md";
+
     private client: Client;
     private telegramData: TelegramDataRepositoryInterface;
 
@@ -64,6 +70,7 @@ export class TelegramService implements TelegramServiceInterface {
         params.messageId ??= this.telegramData.getMessageId();
 
         return await this.client.sendMessage(params.chatId, {
+            parseMode: this.defaultParseMode,
             ...params,
             replyTo: params.messageId,
             message: params.content,
@@ -75,6 +82,7 @@ export class TelegramService implements TelegramServiceInterface {
         params.chatId ??= await this.client.getInputEntity(this.telegramData.getSenderId());
 
         return await this.client.sendMessage(params.chatId, {
+            parseMode: this.defaultParseMode,
             ...params,
             message: params.content,
             buttons: params.keyboard?.make(),
@@ -121,6 +129,37 @@ export class TelegramService implements TelegramServiceInterface {
             ]
         });
     }
+
+    async log(error?: any, context?: string): Promise<void> {
+        let message = "NEW REPORT!\n\n";
+
+        if (environment?.ADMIN_ID) {
+            const entities: Api.TypeMessageEntity[] = [];
+
+            if (error instanceof Error) {
+                const quote = `${(error.stack ?? '')}`;
+
+                message += `${quote}`;
+
+                if (context) {
+                    message += `\n\nContext: ${context}`;
+                }
+
+                entities.push(
+                    new Api.MessageEntityBlockquote({
+                        offset: message.indexOf(quote),
+                        length: quote.length,
+                        collapsed: true
+                    })
+                );
+            }
+            await this.sendMessage({
+                formattingEntities: entities,
+                chatId: environment?.ADMIN_ID,
+                content: message,
+            })
+        }
+    }
 }
 
 
@@ -130,6 +169,8 @@ interface ReplyToParams extends SendMessageParams {
 
 interface SendMessageParams {
     content: string,
+    parseMode?: string,
+    formattingEntities?: Api.TypeMessageEntity[],
     chatId?: Api.TypeEntityLike,
     keyboard?: CallbackKeyboardInterface,
     file?: FileLike | FileLike[],

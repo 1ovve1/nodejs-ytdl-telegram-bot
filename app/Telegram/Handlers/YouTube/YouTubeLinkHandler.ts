@@ -21,14 +21,27 @@ export class YouTubeLinkHandler implements MessageHandlerInterface {
     async handle(telegramService: TelegramServiceInterface, telegramData: TelegramDataRepositoryInterface): Promise<void> {
         const videoUrl: string = telegramData.getMessageContent();
 
-        const video: Video = await this.videoRepository.create(videoUrl);
+        try {
+            const videoInfo = await this.youtubeService.getInfo(videoUrl);
 
-        const videoInfo = await this.youtubeService.getInfo(video);
+            const video: Video = await this.videoRepository.create(videoInfo);
 
-        const videoFormats = await this.videoFormatRepository.createMany(video, videoInfo);
-        const audioFormat = await this.audioFormatRepository.create(video, videoInfo);
+            try {
+                const videoFormats = await this.videoFormatRepository.createMany(video, videoInfo);
+                const audioFormat = await this.audioFormatRepository.create(video, videoInfo);
 
-        await telegramService.replyTo({content: "Выберите качество:", keyboard: new ChoseQualityCallbackKeyboard([...videoFormats, audioFormat])})
+                await telegramService.replyTo({content: "Выберите качество:", keyboard: new ChoseQualityCallbackKeyboard([...videoFormats, audioFormat])});
+            } catch (e: any) {
+                await telegramService.replyTo({content: "Не удалось найти источник для загрузки :("});
+
+                await telegramService.log(e, videoUrl);
+            }
+        } catch (e) {
+            await telegramService.replyTo({content: "YouTube не отвечает :("});
+
+            await telegramService.log(e, videoUrl);
+        }
+
     }
 
     match(messageData: string): boolean {

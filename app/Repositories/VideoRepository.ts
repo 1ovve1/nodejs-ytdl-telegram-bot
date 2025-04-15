@@ -1,12 +1,11 @@
 import db from "../../models";
 import Video from "../../models/videos";
+import {YouTubeVideoInfoInterface} from "../Services/YouTube/YouTubeVideoInfo";
 
 export interface VideoRepositoryInterface {
     findById(id: number): Promise<Video>;
 
-    findOrCreate(url: string): Promise<Video>;
-
-    create(url: string): Promise<Video>;
+    create(youTubeVideoInfo: YouTubeVideoInfoInterface): Promise<Video>;
 
     delete(video: Video): Promise<void>;
 
@@ -24,24 +23,11 @@ export class VideoRepository implements VideoRepositoryInterface {
         return video;
     }
 
-    async findOrCreate(url: string): Promise<Video> {
-        const video: Video | null = await db.Video.findOne({
-            where: { url }
-        });
-
-        if (video === null) {
-            return Video.create({
-                url
-            })
-        }
-
-        return Promise.resolve(video);
-    }
-
-    async create(url: string): Promise<Video>
+    async create(youTubeVideoInfo: YouTubeVideoInfoInterface): Promise<Video>
     {
         return db.Video.create({
-            url
+            url: youTubeVideoInfo.videoInfo.videoDetails.video_url,
+            title: youTubeVideoInfo.videoInfo.videoDetails.title,
         });
     }
 

@@ -12,6 +12,7 @@ export interface AudioFormatRepositoryInterface {
     create(video: Video, youTubeVideoInfo: YouTubeVideoInfoInterface): Promise<AudioFormat>
     findById(id: number): Promise<AudioFormat>;
     findAllFor(video: Video): Promise<AudioFormat[]>;
+    findFor(video: Video): Promise<AudioFormat>;
     existsFor(video: Video): Promise<boolean>;
 
     video(videoFormat: VideoFormat): Promise<Video>;
@@ -21,11 +22,23 @@ export class AudioFormatRepository implements AudioFormatRepositoryInterface {
     readonly MAX_FILE_SIZE_BYTES: number = 2048 * 1024 * 1024;
 
     async create(video: Video, youTubeVideoInfo: YouTubeVideoInfoInterface): Promise<AudioFormat> {
+        const dryVideoFormats = youTubeVideoInfo.getFormats()
+            .filter((youTubeVideoFormat: YouTubeVideoFormatInterface) => youTubeVideoFormat.hasAudio() && youTubeVideoFormat.getSize() < this.MAX_FILE_SIZE_BYTES)
+            .sort((element: YouTubeVideoFormatInterface, comparable: YouTubeVideoFormatInterface) => element.getAudioBitrate() - comparable.getAudioBitrate());
+
+        const cleanVideoFormat = await (async () => {
+            for(const videoFormat of dryVideoFormats) {
+                if (await videoFormat.isUrlOk()) {
+                    return videoFormat;
+                }
+            }
+
+            throw new Error(`Invalid video format for ${video.url}...`);
+        })()
+
+
         const formats: AudioFormat = await AudioFormat.create(
-                await youTubeVideoInfo.getFormats()
-                    .filter((youTubeVideoFormat: YouTubeVideoFormatInterface) => youTubeVideoFormat.hasAudio() && youTubeVideoFormat.getSize() < this.MAX_FILE_SIZE_BYTES)
-                    .sort((element: YouTubeVideoFormatInterface, comparable: YouTubeVideoFormatInterface) => element.getAudioBitrate() - comparable.getAudioBitrate())
-                    .map((videoFormat: YouTubeVideoFormatInterface) => videoFormat.toAudioFormatModel(video)).pop()
+            cleanVideoFormat.toAudioFormatModel(video)
         );
 
         return Promise.resolve(formats);
@@ -45,6 +58,16 @@ export class AudioFormatRepository implements AudioFormatRepositoryInterface {
         const formats = await AudioFormat.findAll({where: {video_id: video.id}})
 
         return Promise.resolve(formats);
+    }
+
+    async findFor(video: Video): Promise<AudioFormat> {
+        const audioFormats = await this.findAllFor(video);
+
+        if (audioFormats.length > 0) {
+            return audioFormats[0];
+        } else {
+            throw new Error(`No audio for video ${video.url}`);
+        }
     }
 
     async existsFor(video: Video): Promise<boolean> {

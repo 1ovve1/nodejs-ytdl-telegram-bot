@@ -1,6 +1,8 @@
 import { Model, DataTypes, Optional } from 'sequelize';
 import sequelize from '../sequelize';
 import {FileSystemService} from "../app/Services/FileSystem/FileSystemService";
+import {YouTubeVideoFormat, YouTubeVideoFormatInterface} from "../app/Services/YouTube/YouTubeVideoFormat";
+import {videoFormat} from "@distube/ytdl-core";
 
 interface AudioFormatAttributes {
     id: number;
@@ -21,6 +23,10 @@ class AudioFormat extends Model<AudioFormatAttributes, AudioFormatCreationAttrib
 
     humanizeFileSize(): string {
         return new FileSystemService().resolveHumanizeFileSizeByGivenBytes(this.size)
+    }
+
+    toVideoFormatEntity(): YouTubeVideoFormatInterface {
+        return new YouTubeVideoFormat(JSON.parse(this.format) as videoFormat);
     }
 }
 
